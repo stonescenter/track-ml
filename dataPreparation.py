@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 import sys
 import os
 
@@ -21,12 +15,12 @@ import multiprocessing
 from multiprocessing import Process, Value, Lock
 import glob, os
 
-def load_cms_data():
+#def load_cms_data():
     #using trackml to read the challenge input data
 
     #event_prefix = 'event000002290'
-    event_prefix = 'event000002878'
-    hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
+#    event_prefix = 'event000002878'
+#    hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
     #type(cells)
 
 #obtain amount of columns
@@ -56,13 +50,22 @@ def select_random_columns(cols_num):
 
 #switch random columns
 def switch_random_columns( randomrow , currentrow, cols ):
-    auxx = 0
-    for column_to_switch in cols:
-        auxx = X[int(currentrow)][int(column_to_switch)]
-        X[int(currentrow)][int(column_to_switch)] = X[int(randomrow)][int(column_to_switch)]
-        X[int(randomrow)][int(column_to_switch)] = auxx
+    #if ((randomrow != 0) and (currentrow !=0) and (cols !=0)):
+    if ((cols.size > 0)):
 
+        auxx = 0
+        for column_to_switch in cols:
+            print("currentrow")
+            print(currentrow)
+            print("randomrow")
+            print(randomrow)
 
+            print("column_to_switch")
+            print(currentrow)
+
+            auxx = X[int(currentrow)][int(column_to_switch)]
+            X[int(currentrow)][int(column_to_switch)] = X[int(randomrow)][int(column_to_switch)]
+            X[int(randomrow)][int(column_to_switch)] = auxx
 
 
 #function to put particle informatio and all the hits of each track in a single line
@@ -102,7 +105,9 @@ def create_tracks(be,e,pid):
     #print(be)
     rw=((e-be))
     print(rw)
-    print(tot_columns)
+    
+    #print(tot_columns)
+
     print(c)
     c = c.reshape((rw, tot_columns))
     print(pid)
@@ -110,7 +115,7 @@ def create_tracks(be,e,pid):
     
 def main():
     print ("hello world!")
-    load_cms_data()
+    #load_cms_data()
 
     #Minimum amount of hits
     print(particles['nhits'].min())
@@ -128,7 +133,6 @@ def main():
 
     perc=40
 
-    tot_columns=121
     #tot_rows=particles.size
     tot_rows=10
     ttt = np.zeros((0))
@@ -143,7 +147,9 @@ def main():
     pid=0
     multiprocess=80
 
-    for ii in range(10):
+    #exit()
+
+    for ii in range(1):
 
         bi=ii*multiprocess
         ei=bi+multiprocess
@@ -231,3 +237,13 @@ def main():
     dtpd.head(2)
     #print(dtpd.loc[dtpd[121] == 0])
     dtpd.iloc[:,121]
+
+event_prefix = 'event000002878'
+hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
+
+tot_columns=121
+
+X = np.zeros((0))
+
+main()
+print("end execution")
