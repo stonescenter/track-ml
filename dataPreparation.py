@@ -44,6 +44,8 @@ def select_random_columns(cols_num):
     rand=0
     for y in cols: # for total amount of columns that will be switched
         rand=random.randrange(1, cols_num)    
+        #print("rand")
+        #print(rand)
         cols[aux]=rand # define which column will be switched
         aux=aux+1
     return(cols)
@@ -51,22 +53,21 @@ def select_random_columns(cols_num):
 #switch random columns
 def switch_random_columns( randomrow , currentrow, cols ):
     #if ((randomrow != 0) and (currentrow !=0) and (cols !=0)):
-    if ((cols.size > 0)):
+    #if (currentrow >0):
+    #if ((cols.size > 0)):
+    global X
+    auxx = 0
+    for column_to_switch in cols:
+        #print("currentrow")
+        #print(currentrow)
+        #print("randomrow")
+        #print(randomrow)
+        #print("column_to_switch")
+        #print(column_to_switch)
 
-        auxx = 0
-        for column_to_switch in cols:
-            print("currentrow")
-            print(currentrow)
-            print("randomrow")
-            print(randomrow)
-
-            print("column_to_switch")
-            print(currentrow)
-
-            auxx = X[int(currentrow)][int(column_to_switch)]
-            X[int(currentrow)][int(column_to_switch)] = X[int(randomrow)][int(column_to_switch)]
-            X[int(randomrow)][int(column_to_switch)] = auxx
-
+        auxx = X[int(currentrow)][int(column_to_switch)]
+        X[int(currentrow)][int(column_to_switch)] = X[int(randomrow)][int(column_to_switch)]
+        X[int(randomrow)][int(column_to_switch)] = auxx
 
 #function to put particle informatio and all the hits of each track in a single line
 def create_tracks(be,e,pid):
@@ -104,24 +105,24 @@ def create_tracks(be,e,pid):
     #print(e)
     #print(be)
     rw=((e-be))
-    print(rw)
+    #print(rw)
     
     #print(tot_columns)
 
-    print(c)
+    #print(c)
     c = c.reshape((rw, tot_columns))
-    print(pid)
+    #print(pid)
     np.savetxt("//tmp//res//arr"+str(pid), c, fmt="%s")
     
 def main():
-    print ("hello world!")
+    global X
     #load_cms_data()
 
     #Minimum amount of hits
-    print(particles['nhits'].min())
+    #print(particles['nhits'].min())
     #Maximum amount of hits
-    print(particles['nhits'].max())
-    print(particles.size)
+    #print(particles['nhits'].max())
+    #print(particles.size)
     #print(particles.head(5))
 
     #load correct tracks
@@ -149,7 +150,7 @@ def main():
 
     #exit()
 
-    for ii in range(1):
+    for ii in range(3):
 
         bi=ii*multiprocess
         ei=bi+multiprocess
@@ -189,14 +190,14 @@ def main():
     #for f in files:
     #    print(f)
 
-    with open('/home/silvio/data/merged_1', 'w') as outfile:
+    with open('/data/merged_1', 'w') as outfile:
         for fname in files:
             with open(fname) as infile:
                 outfile.write(infile.read())
 
-    c=np.loadtxt(open("/home/silvio/data/merged_1"))
-    print(c.shape)
-    print(c.shape[0])
+    c=np.loadtxt(open("/data/merged_1"))
+    #print(c.shape)
+    #print(c.shape[0])
 
     perc=40
 
@@ -218,32 +219,40 @@ def main():
             cols = select_random_columns(cols_num)
     
             randomrow=random.randrange(1, AmountOfFakeRows)
+            #print("randomrow-currentrow")
+            #print(randomrow)
+            #print(currentrow)
             switch_random_columns( randomrow , currentrow, cols )
             currentrow=currentrow+1
 
             X[:, tot_columns-1:]=int(1)
 
-    print(X.shape)
-    print(X[:, tot_columns-1:])
+    #print("X.shape")
+    #print(X.shape)
+    #print("X ")
+    #print(X[:, tot_columns-1:])
 
+    #print("ds 11")
     #concatenate Real and Fake tracks
     ds=np.concatenate((c, X), axis=0)
     np.random.shuffle(ds)
-    print(ds.shape)
-    print(ds[:, tot_columns-1:])
+    #print("ds 1")
+    #print(ds.shape)
+    #print(ds[:, tot_columns-1:])
 
     dtpd = pd.DataFrame(data=ds[0:,0:])#,    # values
-    dtpd.to_csv("/home/silvio/data/TrackFakeReal.csv")
+    #print("1 ")
+    dtpd.to_csv("/data/TrackFakeReal.csv")
+    #print("2 ")
     dtpd.head(2)
     #print(dtpd.loc[dtpd[121] == 0])
-    dtpd.iloc[:,121]
+    #dtpd.iloc[:,121]
 
 event_prefix = 'event000002878'
 hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
-
 tot_columns=121
-
 X = np.zeros((0))
 
 main()
+
 print("end execution")
