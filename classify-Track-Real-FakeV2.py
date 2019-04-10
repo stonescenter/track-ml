@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+import matplotlib.pyplot as plt 
+
 from keras.models import Sequential
 from keras.layers import Dense
 
@@ -11,15 +13,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 
-#concatenate Real and Fake tracks
-ds=np.concatenate((c, X), axis=0)
-np.random.shuffle(ds)
-dtpd = pd.DataFrame(data=ds[0:,0:])#,    # values
+#pd.read_csv("/data/TrackFakeReal.csv")
+df = pd.read_csv("/data/TrackFakeReal.csv")
+#print("2 ")
+#pd.head(2)
+#print(df.head(2))
+print(df.shape[1])
 
 #Separate predictors X and target y
-X= dtpd.iloc[:,0:119]
-#print(X)
-y= dtpd.iloc[:,120]
+X= df.iloc[:,0:120]
+#print(X)    
+y= df.iloc[:,121]
 #print(y)
 
 #Scale data
@@ -33,7 +37,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 #create NN
 classifier = Sequential()
 #First Hidden Layer
-classifier.add(Dense(119, activation='relu', kernel_initializer='random_normal', input_dim=119))
+classifier.add(Dense(120, activation='relu', kernel_initializer='random_normal', input_dim=120))
 #Second  Hidden Layer
 classifier.add(Dense(32, activation='relu', kernel_initializer='random_normal'))
 #Output Layer
@@ -51,7 +55,6 @@ eval_model
 print('Final test set loss: {:4f}'.format(eval_model[0]))
 print('Final test set accuracy: {:4f}'.format(eval_model[1]))
 
-
 # summarize history for loss
 plt.plot(history.history['loss'])
 #plt.plot(history.history['val_loss'])
@@ -60,7 +63,6 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.show()
-
 
 #Compare Predicted an Original
 ynew = classifier.predict_classes(X_test)
