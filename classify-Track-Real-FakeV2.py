@@ -4,17 +4,19 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 
 #pd.read_csv("/data/TrackFakeReal.csv")
-df = pd.read_csv("/data/TrackFakeReal.csv")
+#df = pd.read_csv("/data/TrackFakeReal.csv")
+df = pd.read_csv("/data/TrackFakeRealGauss.csv")
+
 #print("2 ")
 #pd.head(2)
 #print(df.head(2))
@@ -22,35 +24,43 @@ print(df.shape[1])
 
 #Separate predictors X and target y
 X= df.iloc[:,0:120]
-#print(X)    
+#print(X)
 y= df.iloc[:,121]
 #print(y)
 
 #Scale data
 sc = StandardScaler()
 X = sc.fit_transform(X)
-X
 
 #Train and Test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5)
 
 #create NN
 classifier = Sequential()
 #First Hidden Layer
-classifier.add(Dense(120, activation='relu', kernel_initializer='random_normal', input_dim=120))
+#classifier.add(Dense(120, activation='relu', kernel_initializer='random_normal', input_dim=120))
 #Second  Hidden Layer
-classifier.add(Dense(32, activation='relu', kernel_initializer='random_normal'))
+#classifier.add(Dense(256, activation='relu', kernel_initializer='random_normal'))
+#third  Hidden Layer
+#classifier.add(Dense(256, activation='relu', kernel_initializer='random_normal'))
 #Output Layer
-classifier.add(Dense(1, activation='sigmoid', kernel_initializer='random_normal'))
+#classifier.add(Dense(1, activation='sigmoid', kernel_initializer='random_normal'))
+
+
+classifier.add(Dense(240, input_dim=120, activation='relu'))
+classifier.add(Dropout(0.5))
+classifier.add(Dense(240, activation='relu'))
+classifier.add(Dropout(0.5))
+classifier.add(Dense(1, activation='sigmoid'))
 
 #Compiling the neural network
-classifier.compile(optimizer ='adam',loss='binary_crossentropy', metrics =['accuracy'])
+classifier.compile(optimizer ='rmsprop',loss='binary_crossentropy', metrics =['accuracy'])
 
-#Fitting the data to the training dataset batch_size=10, 
-history=classifier.fit(X_train,y_train, epochs=10)
+#Fitting the data to the training dataset batch_size=10,
+history=classifier.fit(X_train,y_train, epochs=1000) #,  batch_size=100)
 
-eval_model=classifier.evaluate(X_train, y_train)
-eval_model
+#eval_model=classifier.evaluate(X_train, y_train)
+eval_model=classifier.evaluate(X_test, y_test)
 
 print('Final test set loss: {:4f}'.format(eval_model[0]))
 print('Final test set accuracy: {:4f}'.format(eval_model[1]))
@@ -65,5 +75,5 @@ plt.legend(['train', 'test'], loc='upper right')
 plt.show()
 
 #Compare Predicted an Original
-ynew = classifier.predict_classes(X_test)
-correct = 0
+#ynew = classifier.predict_classes(X_test)
+#correct = 0

@@ -1,4 +1,3 @@
-#coment about dependencies
 import sys
 import os
 
@@ -26,14 +25,18 @@ import glob, os
 
 #obtain amount of columns
 def amount_of_columns(cell):
+
+
+
     indt=0
     test=0
     indret=0
-    
+
     for z in cell:
         indt=indt+1
         #print("z")
-        if ((z == 0) and (test==0)) : 
+
+        if ((z == 0) and (test == 0)) :
             test=1
             indret=indt
     return(indret) # ind is the  amount of columns =! 0
@@ -44,7 +47,7 @@ def select_random_columns(cols_num):
     aux=0
     rand=0
     for y in cols: # for total amount of columns that will be switched
-        rand=random.randrange(1, cols_num)    
+        rand=random.randrange(6, cols_num)
         #print("rand")
         #print(rand)
         cols[aux]=rand # define which column will be switched
@@ -52,13 +55,13 @@ def select_random_columns(cols_num):
     return(cols)
 
 #switch random columns
-def switch_random_columns( randomrow , currentrow, cols ):
+def switch_random_column( randomrow , currentrow, column_to_switch ):
     #if ((randomrow != 0) and (currentrow !=0) and (cols !=0)):
     #if (currentrow >0):
     #if ((cols.size > 0)):
-    global X
-    auxx = 0
-    for column_to_switch in cols:
+    #global X
+    #auxx = 0
+    #for column_to_switch in cols:
         #print("currentrow")
         #print(currentrow)
         #print("randomrow")
@@ -66,194 +69,268 @@ def switch_random_columns( randomrow , currentrow, cols ):
         #print("column_to_switch")
         #print(column_to_switch)
 
-        auxx = X[int(currentrow)][int(column_to_switch)]
-        X[int(currentrow)][int(column_to_switch)] = X[int(randomrow)][int(column_to_switch)]
-        X[int(randomrow)][int(column_to_switch)] = auxx
+    auxx = X[int(currentrow)][int(column_to_switch)]
+    X[int(currentrow)][int(column_to_switch)] = X[int(randomrow)][int(column_to_switch)]
+    X[int(randomrow)][int(column_to_switch)] = auxx
 
 #function to put particle informatio and all the hits of each track in a single line
-def create_tracks(be,e,pid):
-    #global ttt
-    #print(be)    
-    c = np.zeros((0))
-    
-    #for index, row in particles.head(tot_rows).iterrows():
+def create_tracks(be,e,pid,temporary_directory):
+
+    b = np.zeros((0))
+
     for index, row in particles.iloc[be:e,:].iterrows():
-    
-        b = np.zeros((0))
 
         truth_0 = truth[truth.particle_id == row['particle_id']]
+
         par=particles[['vx','vy','vz','px','py','pz']].loc[particles['particle_id'] == row['particle_id']]
+        particleRow = [par['vx'].values[0],par['vy'].values[0],par['vz'].values[0],par['px'].values[0],par['py'].values[0],par['pz'].values[0]]
 
-        p = [par['vx'].values[0],par['vy'].values[0],par['vz'].values[0],par['px'].values[0],par['py'].values[0],par['pz'].values[0]]
+        psize=par.size
 
-        b= np.concatenate((b, p))
+        b = np.concatenate((b, particleRow))
 
+        h = np.zeros((0))
         for index, row in truth_0.iterrows():
+
             ch=cells[['ch0']].loc[cells['hit_id'] == row['hit_id']].mean()
             ch1=cells[['ch1']].loc[cells['hit_id'] == row['hit_id']].mean()
             vl=cells[['value']].loc[cells['hit_id'] == row['hit_id']].mean()
-    
-            h = [row['tx'],row['ty'],row['tz'],ch[0], ch1[0], vl[0]]
-            b= np.concatenate((b, h))
 
-        toti=tot_columns-b.size
-        cc = np.zeros((toti))
-        tot=np.concatenate((b, cc))
-            #if (len(tot) != 121) :
-            #    print("len(b) " , len(b) , " len(cc) " , len(cc) , "len(tot) " , len(tot))
+            hitRow = [row['tx'],row['ty'],row['tz'],ch[0], ch1[0], vl[0]]
+            h= np.concatenate((h, hitRow))
 
-        c = np.concatenate((c, tot))    
-    #print(e)
-    #print(be)
-    rw=((e-be))
-    #print(rw)
-    
-    #print(tot_columns)
+        hsize=h.size
+        b=np.concatenate((b, h))
 
-    #print(c)
-    c = c.reshape((rw, tot_columns))
-    #print(pid)
-    np.savetxt("//tmp//res//arr"+str(pid), c, fmt="%s")
-    
-def main():
-    global X
-    #load_cms_data()
+        aux = np.zeros((0))
+        remaing_columns_to_zero=tot_columns-1-h.size-6
+        if (remaing_columns_to_zero > 0):
+            aux = np.zeros(remaing_columns_to_zero)
+            auxsize=aux.size
+            b=np.concatenate((b, aux))
 
-    #Minimum amount of hits
-    #print(particles['nhits'].min())
-    #Maximum amount of hits
-    #print(particles['nhits'].max())
-    #print(particles.size)
-    #print(particles.head(5))
+    #print("psize ", psize, "hsize ", hsize, "auxsize ", auxsize, "sum ", psize+hsize+auxsize)
 
-    #load correct tracks
+    rw=(e-be)
+    b = b.reshape(rw, (tot_columns-1))
+    np.savetxt(temporary_directory+"//arr"+str(pid), b, fmt="%s")
 
-    #particles 6 fields
-    #hit id 6 fields x 19 -> maximum amount of hits = 114
-    #1 - output => 0 real 1 fake
-    # total 121
+def create_directory_for_results(temporary_directory):
+    if (os.path.isdir(temporary_directory)):
+        temp_dir = temporary_directory+"//*"
+        files_in_temp_dir = glob.glob(temp_dir)
+        #for file in files_in_temp_dir:
+        #    print("remove ", file)
+        #    os.remove(file)
+    else:
+        os.mkdir(temporary_directory)
 
-    perc=40
-
-    #tot_rows=particles.size
-    tot_rows=10
-    ttt = np.zeros((0))
-
-
-    test = "/tmp/res/*"
-    r = glob.glob(test)
-    for i in r:
-        os.remove(i)
-
-    step=100
-    pid=0
-    multiprocess=80
-
-    #exit()
-
-    for ii in range(3):
-
-        bi=ii*multiprocess
-        ei=bi+multiprocess
-    
-        jobs = []
-
-        for i in range(bi,ei):
-            b=i*step
-            e=b+step
-
-            #print("b-e")
-            #print(b)
-            #print(e)
-            #Process(target=print_func, args=(name,))
-    
-            p = multiprocessing.Process(target=create_tracks, args=(b,e,pid))
-            pid=pid+1
-            jobs.append(p)
-            p.start()
-    
-        for proc in jobs:
-            proc.join()
-
-
-        del jobs[:]
-
-
-    path = '/tmp/res/'
-
+def join_files(temporary_directory):
+    #join all files created by several process
+    #path = '/tmp/res/'
     files = []
-    # r=root, d=directories, f = files
-    for r, d, f in os.walk(path):
+    for r, d, f in os.walk(temporary_directory):
         for file in f:
-            #if '.txt' in file:
             files.append(os.path.join(r, file))
 
-    #for f in files:
-    #    print(f)
 
-    with open('/data/merged_1', 'w') as outfile:
+    with open(temporary_directory+'//merged_1', 'w') as outfile:
         for fname in files:
             with open(fname) as infile:
                 outfile.write(infile.read())
 
-    c=np.loadtxt(open("/data/merged_1"))
-    #print(c.shape)
-    #print(c.shape[0])
+def createFakes():
+    global X
+    percentage_of_fake_rows=90
 
-    perc=40
+    c=np.loadtxt(open(temporary_directory+"/merged_1"))
+    AmountOfFakeRows=int(c.shape[0]*percentage_of_fake_rows/100)
+    print("Amount Of Fake Rows that will be created: ", AmountOfFakeRows)
 
-    #tot_rows = c.shape[0]
+    #track without particle information only hits
+    aux=c[:AmountOfFakeRows,]
+    X=aux[:AmountOfFakeRows,6:120]
+    aux2=aux[:AmountOfFakeRows,0:6]
 
-    AmountOfFakeRows=int(c.shape[0]*perc/100)
-    
-    print(AmountOfFakeRows)
-
-    X=c[:AmountOfFakeRows,]
-
+    #rand_cols_set=[0,1,2]
+    rand_cols_set = [0,1,2,6,7,8,12,13,14,18,19,20,24,25,26,30,31,32,36,37,38,42,43,44,48,49,50,54,55,56,60,61,62,66,67,68,72,73,74,78,79,80,84,85,86,90,91,92,96,97,98,102,103,104,108,109,110]
+    amount_of_cols_than_can_be_changed=len(rand_cols_set)
     currentrow=0
-
     for cell in X: # for each row in fake dataset
+        cont=0
+        changed = 0
+        if (X[int(currentrow)][0] != 0.0):
+            while changed < 1:
+
+                rand_col = random.randrange(0, amount_of_cols_than_can_be_changed)
+                randomrow=random.randrange(1, AmountOfFakeRows)
+
+                rand_col_to_change = rand_cols_set[rand_col]
+
+                if ((X[int(currentrow)][int(rand_col_to_change)] != 0.0) and (X[int(randomrow)][int(rand_col_to_change)] != 0.0)):
+                    switch_random_column( randomrow , currentrow, rand_col_to_change )
+                    changed += 1
+                    cont    += 1
+                    #print(cont)
+        currentrow=currentrow+1
+
+    xtotnp=np.concatenate((aux2, X), axis=1)
+
+    vfinalReal = np.hstack((c, np.ones((c.shape[0], 1), dtype=c.dtype)))
+    vfinalFake = np.hstack((xtotnp, np.zeros((xtotnp.shape[0], 1), dtype=xtotnp.dtype)))
+
+    ds=np.concatenate((vfinalReal, vfinalFake), axis=0)
+    np.random.shuffle(ds)
+    dtpd = pd.DataFrame(data=ds[0:,0:])
+    dtpd.to_csv(output_file_path)
+
+def createTracks():
+# This is the Main function
+
+    global Am_of_particles
+    global Am_of_cores
+    global total_of_loops
+    global remaining_tracks
+    global output_file_path
+    step=1
+    pid=0
+
+    create_directory_for_results(temporary_directory)
+
+    jobs = []
+    for i in range(Am_of_cores+1):
+
+        b=i*total_of_loops
+
+        if (i == Am_of_cores):
+            e=b+remaining_tracks
+        else:
+            e=b+total_of_loops
+
+        p = multiprocessing.Process(target=create_tracks, args=(b,e,pid,temporary_directory))
+
+        pid=pid+1
+        jobs.append(p)
+        p.start()
+
+        for proc in jobs:
+            proc.join()
+
+        del jobs[:]
+
+    join_files(temporary_directory)
+
+
+
+    #print(aux[0,0:6])
+    #aux=c.sample(n=AmountOfFakeRows)
+    #aux c[np.random.randint(c.shape[0], size=2), :]
+    #print(X[0,0:10])
+    #print(xtotnp[0,0:10])
+    #print(xtotnp.shape[0])
+    #print(xtotnp.shape[1])
+
+    #print(vfinal.shape[0])
+    #print(vfinal.shape[1])
+    #print(vfinal[0,120])
+
+    #print(xtotnp[0,120])
+
+    #np.c_[ xtotnp, np.ones(xtotnp.shape[0]) ]
+    #xtotnp[:, tot_columns:]=int(1)
+    #amm=xtotnp.shape[0]
+    #yy = np.ones((xtotnp.shape[0], 1))
+    #yy = np.ones((xtotnp.shape[0]))
+    #print("yy.shape[0] " , yy.shape[0])
+    #print("yy.shape[1] ", yy.shape[1])
+    #yy = np.zeros(amm,1, dtype=int)
+    #yy.reshape(1, xtotnp.shape[1])
+
+    #print("yy.shape[0] " , yy.shape[0])
+    #print("yy.shape[1] ", yy.shape[1])
+
+    #np.append(xtotnp, yy, axis=1)
+    #print(xtotnp.shape[0])
+    #print(xtotnp.shape[1])
+
+    #print(xtotnp[0,120])
+
+    #currentrow=0
+
+
+    #for cell in X: # for each row in fake dataset
+    #    rand_col = random.randrange(0, 114)
+    #    randomrow=random.randrange(1, AmountOfFakeRows)
+    #    switch_random_column( randomrow , currentrow, rand_col )
+    #    currentrow=currentrow+1
+
+    '''
+        (df == 0).astype(int).sum(axis=1)
+
         indd=amount_of_columns(cell)
-        #print(indd)
-        if (indd > 2) :
-            cols_num = random.randrange(2, indd) #cols_num is the  amount of columns that will be switched
+        if (indd > 5) :
+            cols_num = random.randrange(5, indd) #cols_num is the  amount of columns that will be switched
             cols = select_random_columns(cols_num)
-    
+
             randomrow=random.randrange(1, AmountOfFakeRows)
-            #print("randomrow-currentrow")
-            #print(randomrow)
-            #print(currentrow)
             switch_random_columns( randomrow , currentrow, cols )
             currentrow=currentrow+1
 
             X[:, tot_columns-1:]=int(1)
+    '''
+    '''
+    print("currentrow ", currentrow )
+    aux2=aux[:AmountOfFakeRows,0:6]
+    print(aux2.shape[0])
+    print(aux2.shape[1])
+    #c = np.concatenate((a, b), 1)
+    xtotnp=np.concatenate((aux2, X), axis=1)
 
-    #print("X.shape")
-    #print(X.shape)
-    #print("X ")
-    #print(X[:, tot_columns-1:])
+    print("xtotnp.shape[0]", xtotnp.shape[0])
+    print("xtotnp.shape[1]", xtotnp.shape[1])
 
-    #print("ds 11")
-    #concatenate Real and Fake tracks
-    ds=np.concatenate((c, X), axis=0)
+    xtotnp[:, tot_columns+1:]=int(0)
+    c[:, tot_columns+1:]=int(1)
+
+    print(xtotnp.shape[0])
+    print(xtotnp.shape[1])
+
+    print(c.shape[0])
+    print(c.shape[1])
+
+    ds=np.concatenate((c, xtotnp), axis=0)
+
     np.random.shuffle(ds)
-    #print("ds 1")
-    #print(ds.shape)
-    #print(ds[:, tot_columns-1:])
 
     dtpd = pd.DataFrame(data=ds[0:,0:])#,    # values
-    #print("1 ")
-    dtpd.to_csv("/data/TrackFakeReal.csv")
-    #print("2 ")
-    dtpd.head(2)
-    #print(dtpd.loc[dtpd[121] == 0])
-    #dtpd.iloc[:,121]
 
+    dtpd.to_csv(output_file_path)
+    '''
+    #dtpd.head(2)
+#file with track events
 event_prefix = 'event000002878'
 hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
-tot_columns=121
+
 X = np.zeros((0))
 
-main()
+#121 columns -> 6 particles columns; 19 hits (6 columns); um result columns (fake or real) ==> 6x19 + 6 +1 =121
+#tot_columns=121
+tot_columns      = 121
+Am_of_particles  = particles.shape[0]
+Am_of_cores      = multiprocessing.cpu_count()-2
+total_of_loops   = Am_of_particles // Am_of_cores
+remaining_tracks = (Am_of_particles-(total_of_loops*Am_of_cores))
+output_file_path = "/data/TrackFakeReal.csv"
+temporary_directory = "/tmp/res/"
+
+print("output_file_path: ", output_file_path)
+print("temporary_directory: ", temporary_directory)
+print("Amount of Particles: ", Am_of_particles)
+print("Amount of Processing cores: ", Am_of_cores)
+print("total of loops: ", total_of_loops)
+print("remaing tracks : ", remaining_tracks)
+
+#createTracks()
+createFakes()
 
 print("end execution")
