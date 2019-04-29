@@ -26,8 +26,6 @@ import glob, os
 #obtain amount of columns
 def amount_of_columns(cell):
 
-
-
     indt=0
     test=0
     indret=0
@@ -119,9 +117,10 @@ def create_directory_for_results(temporary_directory):
     if (os.path.isdir(temporary_directory)):
         temp_dir = temporary_directory+"//*"
         files_in_temp_dir = glob.glob(temp_dir)
-        #for file in files_in_temp_dir:
-        #    print("remove ", file)
-        #    os.remove(file)
+
+        for file in files_in_temp_dir:
+            print("remove ", file)
+            os.remove(file)
     else:
         os.mkdir(temporary_directory)
 
@@ -133,8 +132,8 @@ def join_files(temporary_directory):
         for file in f:
             files.append(os.path.join(r, file))
 
-
-    with open(temporary_directory+'//merged_1', 'w') as outfile:
+    #with open(temporary_directory+'//merged_1', 'w') as outfile:
+    with open(output_file_real, 'w') as outfile:
         for fname in files:
             with open(fname) as infile:
                 outfile.write(infile.read())
@@ -143,7 +142,9 @@ def createFakes():
     global X
     percentage_of_fake_rows=90
 
-    c=np.loadtxt(open(temporary_directory+"/merged_1"))
+    #c=np.loadtxt(open(temporary_directory+"/merged_1"))
+    c=np.loadtxt(output_file_real)
+
     AmountOfFakeRows=int(c.shape[0]*percentage_of_fake_rows/100)
     print("Amount Of Fake Rows that will be created: ", AmountOfFakeRows)
 
@@ -179,10 +180,13 @@ def createFakes():
     vfinalReal = np.hstack((c, np.ones((c.shape[0], 1), dtype=c.dtype)))
     vfinalFake = np.hstack((xtotnp, np.zeros((xtotnp.shape[0], 1), dtype=xtotnp.dtype)))
 
+    dtpd = pd.DataFrame(data=vfinalFake)
+    dtpd.to_csv(output_file_fake)
+
     ds=np.concatenate((vfinalReal, vfinalFake), axis=0)
     np.random.shuffle(ds)
     dtpd = pd.DataFrame(data=ds[0:,0:])
-    dtpd.to_csv(output_file_path)
+    dtpd.to_csv(output_file_all)
 
 def createTracks():
 # This is the Main function
@@ -191,7 +195,11 @@ def createTracks():
     global Am_of_cores
     global total_of_loops
     global remaining_tracks
-    global output_file_path
+
+    output_file_all = "/data/output/TracksRealFake"+str(event_prefix)+".csv"
+    output_file_real = "/data/output/TracksReal"+str(event_prefix)+".csv"
+    output_file_fake = "/data/output/TracksFake"+str(event_prefix)+".csv"
+
     step=1
     pid=0
 
@@ -199,6 +207,7 @@ def createTracks():
 
     jobs = []
     for i in range(Am_of_cores+1):
+    #for i in range(3):
 
         b=i*total_of_loops
 
@@ -206,9 +215,10 @@ def createTracks():
             e=b+remaining_tracks
         else:
             e=b+total_of_loops
+        #e=100
+        #b=1
 
         p = multiprocessing.Process(target=create_tracks, args=(b,e,pid,temporary_directory))
-
         pid=pid+1
         jobs.append(p)
         p.start()
@@ -308,8 +318,12 @@ def createTracks():
     '''
     #dtpd.head(2)
 #file with track events
-event_prefix = 'event000002878'
-hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
+print ("This is the name of the script: ", sys.argv[0])
+print ("event_prefix: ", sys.argv[1])
+#event_prefix = 'event000002878'
+event_prefix = sys.argv[1]
+#hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_2/train_2', event_prefix))
+hits, cells, particles, truth = load_event(os.path.join('/data/trackMLDB/train_1', event_prefix))
 
 X = np.zeros((0))
 
@@ -320,17 +334,22 @@ Am_of_particles  = particles.shape[0]
 Am_of_cores      = multiprocessing.cpu_count()-2
 total_of_loops   = Am_of_particles // Am_of_cores
 remaining_tracks = (Am_of_particles-(total_of_loops*Am_of_cores))
-output_file_path = "/data/TrackFakeReal.csv"
-temporary_directory = "/tmp/res/"
+output_file_all = "/data/output/TracksRealFake"+str(event_prefix)+".csv"
+output_file_real = "/data/output/TracksReal"+str(event_prefix)+".csv"
+output_file_fake = "/data/output/TracksFake"+str(event_prefix)+".csv"
+temporary_directory = "/tmp/res/"+str(event_prefix)+"/"
 
-print("output_file_path: ", output_file_path)
+print("output_file_all: ", output_file_all)
+print("output_file_real: ", output_file_real)
+print("output_file_fake: ", output_file_fake)
+
 print("temporary_directory: ", temporary_directory)
 print("Amount of Particles: ", Am_of_particles)
 print("Amount of Processing cores: ", Am_of_cores)
 print("total of loops: ", total_of_loops)
 print("remaing tracks : ", remaining_tracks)
 
-#createTracks()
+createTracks()
 createFakes()
 
 print("end execution")
