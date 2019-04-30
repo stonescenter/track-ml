@@ -18,7 +18,7 @@ def vdelta_phi(x1, x2):
 
 
 # PARAMETERS
-input_path  = './RealTracksOnly.csv'
+input_path  = './real.csv'
 output_path = '/data/track-ml/output/'
 plt.ioff()
 
@@ -188,13 +188,13 @@ print("Total number of hits is "+str(global_eta.size))
 
 plt.figure(8)
 heatmap, xedges, yedges = np.histogram2d(global_eta, global_phi,
-                                         bins=([x/10 for x in range(-42,43,4)],
+                                         bins=([x/10 for x in range(-44,45,4)],
                                                make_phi_range(13)))
 extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 print(xedges)
 print(yedges)
 
-plt.imshow(heatmap.T, extent=extent, origin='lower', cmap=cm.afmhot)
+plt.imshow(heatmap.T, extent=extent, origin='lower', cmap=cm.afmhot, vmin=-0, vmax=500)
 cb = plt.colorbar()
 cb.set_label('Number of hits')
 plt.savefig('hitsEtaPhi_square_all.png', bbox_inches='tight')
