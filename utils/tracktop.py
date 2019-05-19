@@ -87,5 +87,4 @@ def xyz_bsort(df_to_be_sorted):
         for j in range(0,len(index_xyz)-i):
             if index_xyz[j]>index_xyz[j+1]:
                 xyz_swap(df_to_be_sorted,index_xyz,j,j+1)
-
->>>>>>> upstream/master
+                
