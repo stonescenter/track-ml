@@ -61,7 +61,6 @@ def rotate_hit_by_angle(theta, hit):
 
 
 def make_hits_rhoetaphi_collection(hits):
-
     global_X = np.empty(0)
     global_Y = np.empty(0)
     global_rho = np.empty(0)
@@ -86,7 +85,7 @@ def make_hits_rhoetaphi_collection(hits):
         Y = np.trim_zeros(Y)
         Z = np.trim_zeros(Z)
         tech1 = tech1[: X.size]
-        tech2 = tech3[: X.size]
+        tech2 = tech2[: X.size]
         tech3 = tech3[: X.size]
 
         assert (
