@@ -69,6 +69,9 @@ def make_random_track(selected_hits, total_hits):
     )
     return candidate_track
 
+
+#Previous version of track sort working with x, y, z
+'''
 def xyz_swap(df_tb_swap,index_xyz,i,j):
     index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
     df_tb_swap.iloc[3*i]  , df_tb_swap.iloc[3*j]   = df_tb_swap.iloc[3*j],   df_tb_swap.iloc[3*i]
@@ -87,4 +90,28 @@ def xyz_bsort(df_to_be_sorted):
         for j in range(0,len(index_xyz)-i):
             if index_xyz[j]>index_xyz[j+1]:
                 xyz_swap(df_to_be_sorted,index_xyz,j,j+1)
-                
+'''
+# SWAP function to work with bubble sort
+def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
+    pivot_i = pivot * i
+    pivot_j = pivot * j
+    #swapping index array
+    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
+    #swapping tracks array
+    for aux in range(pivot):
+        df_tb_swap.iloc[pivot_i+aux],df_tb_swap.iloc[pivot_j+aux]=df_tb_swap.iloc[pivot_j+aux],df_tb_swap.iloc[pivot_i+aux]
+
+#function to sort a line of a track dataset divided by hits with 6 elements
+def xyz_bsort(df_to_be_sorted, pivot = 6):
+    index_xyz = []
+    df_n_col  = df_to_be_sorted.shape[0]//pivot
+    for aux in range(0,df_n_col):
+        pivot_tmp = pivot * aux
+        x = df_to_be_sorted.iloc[pivot_tmp + 0]
+        y = df_to_be_sorted.iloc[pivot_tmp + 1]
+        z = df_to_be_sorted.iloc[pivot_tmp + 2]
+        index_xyz.append(x ** 2 + y ** 2 + z ** 2)
+    for i in range(1,len(index_xyz)):
+        for j in range(0, len(index_xyz) - i):
+            if index_xyz[j] > index_xyz[j + 1]:
+                xyz_swap(df_to_be_sorted, index_xyz, j, j+1, pivot)
