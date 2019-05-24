@@ -2,6 +2,8 @@ from scipy import special
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import plotly.graph_objs as go
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 
 default_err = 0.03
 default_err_fad = 0.174
@@ -102,7 +104,14 @@ def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
         df_tb_swap.iloc[pivot_i+aux],df_tb_swap.iloc[pivot_j+aux]=df_tb_swap.iloc[pivot_j+aux],df_tb_swap.iloc[pivot_i+aux]
 
 #function to sort a line of a track dataset divided by hits with 6 elements
-def xyz_bsort(df_to_be_sorted, pivot = 6):
+def xyz_bsort(df_to_be_sorted, **kwargs):
+    pivot = 6
+    
+    if kwargs.get('pivot'):
+        pivot = kwargs.get('pivot')
+        
+    #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
+    
     index_xyz = []
     df_n_col  = df_to_be_sorted.shape[0]//pivot
     for aux in range(0,df_n_col):
@@ -115,6 +124,10 @@ def xyz_bsort(df_to_be_sorted, pivot = 6):
         for j in range(0, len(index_xyz) - i):
             if index_xyz[j] > index_xyz[j + 1]:
                 xyz_swap(df_to_be_sorted, index_xyz, j, j+1, pivot)
+    
+    #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
+    
+    
 
 #function to plot tracks
 def track_plot(df_tb_plt, **kwargs):
@@ -122,7 +135,7 @@ def track_plot(df_tb_plt, **kwargs):
     track_color = 'red'
     n_tracks = 1
     pivot = 6
-    tittle = 'Track plots'
+    title = 'Track plots'
     
     if kwargs.get('track_color'):
         track_color = kwargs.get('track_color')
