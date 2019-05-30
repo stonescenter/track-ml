@@ -9,6 +9,7 @@ default_err = 0.03
 default_err_fad = 0.174
 default_len_err = 500
 default_center = 1
+pivot = 6
 
 
 def scale_range(input, min, max):
@@ -105,8 +106,7 @@ def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
 
 #function to sort a line of a track dataset divided by hits with 6 elements
 def xyz_bsort(df_to_be_sorted, **kwargs):
-    pivot = 6
-    
+      
     if kwargs.get('pivot'):
         pivot = kwargs.get('pivot')
         
@@ -134,7 +134,6 @@ def track_plot(df_tb_plt, **kwargs):
     
     track_color = 'red'
     n_tracks = 1
-    pivot = 6
     title = 'Track plots'
     
     if kwargs.get('track_color'):
@@ -241,3 +240,61 @@ def track_plot(df_tb_plt, **kwargs):
 
     init_notebook_mode(connected=True)
     iplot(fig, filename='plot_track_real_fake')
+
+
+    
+def convert_track_xyz_to_rhoetaphi(df_in):
+
+    len_xyz = df_in.shape[0] // pivot
+
+    for i in range(len_xyz):
+        pivot_tmp = i * pivot
+        x = df_in.iloc[pivot_tmp] 
+        y = df_in.iloc[pivot_tmp + 1] 
+        z = df_in.iloc[pivot_tmp + 2]
+        if (x != 0 and y != 0 and z != 0):
+            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+            df_in.iloc[pivot_tmp] = rho 
+            df_in.iloc[pivot_tmp + 1] = eta
+            df_in.iloc[pivot_tmp + 2] = phi
+
+            
+def convert_track_rhoetaphi_to_xyz(df_in, df_out):
+
+    len_xyz = df_in.shape[0] // pivot
+
+    for i in range(len_xyz):
+        pivot_tmp = i * pivot
+        rho = df_in.iloc[pivot_tmp] 
+        eta = df_in.iloc[pivot_tmp + 1] 
+        phi = df_in.iloc[pivot_tmp + 2]
+        if (rho != 0 and eta != 0 and phi != 0):
+            x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+            df_out.iloc[pivot_tmp] = x 
+            df_out.iloc[pivot_tmp + 1] = y
+            df_out.iloc[pivot_tmp + 2] = z
+            
+            
+def convert_track_etaphi_err(df_in, err_func = err_normal, **kwargs):
+    err = default_err
+    
+    if kwargs.get('err'):
+        err = kwargs.get('err')
+
+    len_xyz = df_in.shape[0] // pivot
+        
+    for i in range(len_xyz):
+        pivot_tmp = i * pivot
+        x = df_in.iloc[pivot_tmp] 
+        y = df_in.iloc[pivot_tmp + 1] 
+        z = df_in.iloc[pivot_tmp + 2]
+        if (x != 0 and y != 0 and z != 0):
+            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)       
+            eta = err_func(eta, err) 
+            phi = err_func(phi, err)
+
+            x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+            
+            df_in.iloc[pivot_tmp] = x 
+            df_in.iloc[pivot_tmp + 1] = y
+            df_in.iloc[pivot_tmp + 2] = z
