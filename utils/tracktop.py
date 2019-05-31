@@ -4,6 +4,7 @@ import random
 import numpy as np
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+from transformation import *
 
 default_err = 0.03
 default_err_fad = 0.174
@@ -106,7 +107,7 @@ def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
 
 #function to sort a line of a track dataset divided by hits with 6 elements
 def xyz_bsort(df_to_be_sorted, **kwargs):
-      
+    global pivot 
     if kwargs.get('pivot'):
         pivot = kwargs.get('pivot')
         
@@ -131,6 +132,8 @@ def xyz_bsort(df_to_be_sorted, **kwargs):
 
 #function to plot tracks
 def track_plot(df_tb_plt, **kwargs):
+    
+    global pivot
     
     track_color = 'red'
     n_tracks = 1
