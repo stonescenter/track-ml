@@ -84,10 +84,12 @@ def xyz_bsort(df_to_be_sorted):
         for j in range(0, len(index_xyz) - i):
             if index_xyz[j] > index_xyz[j + 1]:
                 xyz_swap(df_to_be_sorted, index_xyz, j, j + 1)
-# fmt: on
 
+# fmt: on
 # Flatten hits, pad the line to make up the original length,
 # add back the index, vertex, momentum in the front
+# INPUT: array of selected_hits, number of total_hits
+# OUTPUT: array with dummy idx, vtx and momentum, sorted hits
 def make_random_track(selected_hits, total_hits):
     flat_selected_hits = selected_hits.flatten()
     padded_selected_hits = np.pad(
@@ -109,6 +111,7 @@ def make_random_track(selected_hits, total_hits):
 
 
 # fmt:off
+
 #Previous version of track sort working with x, y, z
 '''
 def xyz_swap(df_tb_swap,index_xyz,i,j):
