@@ -28,10 +28,10 @@ output_path = "/data/track-ml/output/"
 extra_track_info = 7
 max_num_hits = 28
 num_fine_eta_bins = 88
-num_coarse_eta_bins = 88
 num_fine_phi_bins = 63
-num_coarse_phi_bins = 63
 num_fine_rho_bins = 120
+num_coarse_eta_bins = 22  # 8.8/22 = 0.4
+num_coarse_phi_bins = 13  # 6.28/13 = 0.48
 hit_size = 6  # 3 space points + 3 technical information
 plt.ioff()
 
@@ -200,7 +200,12 @@ print("Total number of hits is " + str(global_eta.size))
 
 plt.figure(8)
 heatmap, xedges, yedges = np.histogram2d(
-    global_eta, global_phi, bins=(make_eta_range(22, -4.4, 4.4), make_phi_range(13))
+    global_eta,
+    global_phi,
+    bins=(
+        np.linspace(-4.4, 4.4, num_coarse_eta_bins + 1),
+        np.linspace(-np.pi, np.pi, num_coarse_eta_bins + 1),
+    ),
 )
 extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 print(xedges)
