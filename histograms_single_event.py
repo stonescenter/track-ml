@@ -27,6 +27,11 @@ input_path = "./tracksReais_04_06_2019"
 output_path = "/data/track-ml/output/"
 extra_track_info = 7
 max_num_hits = 28
+num_fine_eta_bins = 88
+num_coarse_eta_bins = 88
+num_fine_phi_bins = 63
+num_coarse_phi_bins = 63
+num_fine_rho_bins = 120
 hit_size = 6  # 3 space points + 3 technical information
 plt.ioff()
 
@@ -46,10 +51,10 @@ global_rho = np.empty(0)
 global_centered_eta = np.empty(0)
 global_centered_phi = np.empty(0)
 num_hits = []
-eta_bins = make_eta_range(88, -4.4, 4.4)
-phi_bins = make_phi_range(63)
-rho_bins = [x * 10.0 for x in range(0, 120, 1)]
-delta_bins = make_eta_range(40, -2.0, 2.0)
+eta_bins = np.linspace(-4.4, 4.4, num_fine_eta_bins + 1)
+phi_bins = np.linspace(-np.pi, np.pi, num_fine_phi_bins + 1)
+rho_bins = np.linspace(0, 1200, num_fine_rho_bins + 1)
+delta_bins = np.linspace(-2.0, 2.0, 40 + 1)
 
 # Loop over particles
 for i in range(hits.shape[0]):
@@ -91,7 +96,7 @@ for i in range(hits.shape[0]):
 
 ###
 ### Now we just plot!
-###
+### TODO: should pack most of this into a function
 
 plt.figure(1)
 n, bins, patches = plt.hist(
