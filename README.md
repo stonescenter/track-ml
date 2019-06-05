@@ -28,3 +28,15 @@ classifier.add(Dense(2400, input_dim=120, activation='relu'))
 classifierp = multi_gpu_model(classifier, gpus=2)
 classifierp.compile(optimizer ='rmsprop',loss='binary_crossentropy', metrics =['accuracy'])
 ```
+
+In order to use Python script: Prepare_data_to_NN.py you can setup your conda environment using trackenv.yml
+
+```
+conda env create -n trackml4 -f /data/trackenv.yml
+```
+
+After create the environment wil you need to install a kaggle track library to manage event files:
+
+```
+pip install --user git+https://github.com/LAL/trackml-library.git
+```
