@@ -60,7 +60,7 @@ def rotate_hit_by_angle(theta, hit):
     return rotated_hit
 
 
-def make_hits_rhoetaphi_collection(hits):
+def make_hits_rhoetaphi_collection(hits, max_num_hits, hit_size):
     global_X = np.empty(0)
     global_Y = np.empty(0)
     global_rho = np.empty(0)
@@ -74,7 +74,7 @@ def make_hits_rhoetaphi_collection(hits):
     # Loop over particles
     for i in range(hits.shape[0]):
         the_hits = hits[i]
-        reshaped_hits = the_hits.reshape(int(114 / 6), 6)
+        reshaped_hits = the_hits.reshape(max_num_hits, hit_size)
         X = reshaped_hits[:, 0]
         Y = reshaped_hits[:, 1]
         Z = reshaped_hits[:, 2]
@@ -134,9 +134,8 @@ def parts_from_tracks(tracks):
     indexes = tracks[:, 0]  # Particle indexes (0,1,2,...)
     vertices = tracks[:, 1:4]  # Particle vertex (tx,ty,tz)
     momenta = tracks[:, 4:7]  # Particle momentum (px,py,pz)
-    hits = tracks[
-        :, 7:-1
-    ]  # N hits with the following information: 3D point + 3 tech. info
+    # N hits with the following information: 3D point + 3 tech. info
+    hits = tracks[:, 7:]
     return indexes, vertices, momenta, hits
 
 

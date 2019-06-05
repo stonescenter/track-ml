@@ -1,10 +1,13 @@
+# fmt: off
 from scipy import special
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from transformation import *
+import pandas as pd
 
 default_err = 0.03
 default_err_fad = 0.174
@@ -45,14 +48,46 @@ def err_erf(position, err=default_err, len_err=default_len_err):
 def err_faddeeva(position, err=default_err_fad, len_err=default_len_err):
     err_array = np.linspace(-err, err, len_err)
     faddeev_array = special.wofz(err_array)
-    factor = [1,-1]
-    value_err = round(position * (random.choice(faddeev_array.real) ** 
-                                  random.choice(factor)),8)
+    factor = [1, -1]
+    value_err = round(
+        position * (random.choice(faddeev_array.real) ** random.choice(factor)), 8
+    )
     return value_err
+
+
+# Auxiliary functions to sort hits in track
+def xyz_swap(df_tb_swap, index_xyz, i, j):
+    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
+    df_tb_swap.iloc[3 * i], df_tb_swap.iloc[3 * j] = (
+        df_tb_swap.iloc[3 * j],
+        df_tb_swap.iloc[3 * i],
+    )
+    df_tb_swap.iloc[3 * i + 1], df_tb_swap.iloc[3 * j + 1] = (
+        df_tb_swap.iloc[3 * j + 1],
+        df_tb_swap.iloc[3 * i + 1],
+    )
+    df_tb_swap.iloc[3 * i + 2], df_tb_swap.iloc[3 * j + 2] = (
+        df_tb_swap.iloc[3 * j + 2],
+        df_tb_swap.iloc[3 * i + 2],
+    )
+
+
+def xyz_bsort(df_to_be_sorted):
+    index_xyz = []
+    df_n_col = df_to_be_sorted.shape[0] // 3
+    for aux in range(0, df_n_col):
+        x = df_to_be_sorted.iloc[3 * aux + 0]
+        y = df_to_be_sorted.iloc[3 * aux + 1]
+        z = df_to_be_sorted.iloc[3 * aux + 2]
+        index_xyz.append(x ** 2 + y ** 2 + z ** 2)
+    for i in range(1, len(index_xyz)):
+        for j in range(0, len(index_xyz) - i):
+            if index_xyz[j] > index_xyz[j + 1]:
+                xyz_swap(df_to_be_sorted, index_xyz, j, j + 1)
+# fmt: on
 
 # Flatten hits, pad the line to make up the original length,
 # add back the index, vertex, momentum in the front
-# and the 0 (for "False") in the back
 def make_random_track(selected_hits, total_hits):
     flat_selected_hits = selected_hits.flatten()
     padded_selected_hits = np.pad(
@@ -62,18 +97,18 @@ def make_random_track(selected_hits, total_hits):
         constant_values=0,
     )
 
+    df = pd.DataFrame(padded_selected_hits)
+    print(df)
+    xyz_bsort(df)
+    sorted_hits = np.asarray(df)
+
     candidate_track = np.concatenate(
-        [
-            np.array([-1]),
-            np.array([0, 0, 0]),
-            np.array([0, 0, 0]),
-            padded_selected_hits,
-            np.array([0]),
-        ]
+        [np.array([-1]), np.array([0, 0, 0]), np.array([0, 0, 0]), sorted_hits]
     )
     return candidate_track
 
 
+# fmt:off
 #Previous version of track sort working with x, y, z
 '''
 def xyz_swap(df_tb_swap,index_xyz,i,j):
@@ -301,3 +336,4 @@ def convert_track_etaphi_err(df_in, err_func = err_normal, **kwargs):
             df_in.iloc[pivot_tmp] = x 
             df_in.iloc[pivot_tmp + 1] = y
             df_in.iloc[pivot_tmp + 2] = z
+# fmt:on

@@ -10,10 +10,13 @@ import utils.transformation as utf
 import utils.tracktop as tracktop
 
 # PARAMETERS
-input_path = "./real.csv"
-output_path = "/data/track-ml/output/"
-output_name = output_path + "randTrks_cell0p4X0p5_nhitsPois11_2019-05-19.csv"
-mean_nhits = 11.0
+input_path = "./tracksReais_04_06_2019"
+output_path = "."  # "/data/track-ml/output/"
+output_name = output_path + "foo.csv"
+extra_track_info = 7
+max_num_hits = 28
+hit_size = 6
+mean_num_hits = 12.0
 num_tracks_to_generate = 10000
 
 # Open the input file
@@ -25,7 +28,7 @@ indexes, vertices, momenta, hits = utf.parts_from_tracks(tracks)
 print("Hits", hits.shape)
 
 # Reshape the hits to make a collection of global hits
-global_hits = utf.make_hits_rhoetaphi_collection(hits)
+global_hits = utf.make_hits_rhoetaphi_collection(hits, max_num_hits, hit_size)
 print("Global hits", global_hits.shape)
 
 # Select hits only in a small square of (0.4 X 0.5232)
@@ -50,7 +53,7 @@ for low_eta_index in range(len(eta_range) - 1):
         cell_number = cell_number + 1
 
 # print(cell_edges)
-output_tracks = np.empty((0, 122))
+output_tracks = np.empty((0, extra_track_info + hit_size * max_num_hits))
 for track_number in range(num_tracks_to_generate):
     if track_number % 100 == 0:
         print("Track number", track_number)
@@ -81,8 +84,8 @@ for track_number in range(num_tracks_to_generate):
     # Generate nhits, select randomly nhits to make up the track candidate
     # We select a poisson number around nhits, truncated in between [1, 19]
     generated_nhits = 0
-    while generated_nhits not in range(1, 19):
-        generated_nhits = np.random.poisson(mean_nhits, 1)[0]
+    while generated_nhits not in range(1, max_num_hits):
+        generated_nhits = np.random.poisson(mean_num_hits, 1)[0]
 
     # print("Generated nhits", generated_nhits)
     selected_hits = cell_hits[
@@ -91,16 +94,12 @@ for track_number in range(num_tracks_to_generate):
     # print("Selected hits", selected_hits.shape)
     # print("Selected hits", selected_hits)
 
-    candidate_track = tracktop.make_random_track(selected_hits, 19)
-    # FIXME: sort tracks
+    # This track is already sorted
+    candidate_track = tracktop.make_random_track(selected_hits, max_num_hits)
+
     # print("Candidate track", candidate_track.shape)
     # print("Full candidate track", candidate_track)
     output_tracks = np.vstack((output_tracks, candidate_track))
 
 print("Output tracks", output_tracks.shape)
-np.savetxt(
-    "randomTracks_cell0p4X0p5_nhitsPoisson11_2019-05-19.csv",
-    output_tracks,
-    delimiter=",",
-    fmt="%.9e",
-)
+np.savetxt("foo.csv", output_tracks, delimiter=",", fmt="%.9e")
