@@ -49,7 +49,7 @@ errlist=[0.005, 0.01, 0.02, 0.03, 0.1, 0.15]
 
 for err_index in errlist:
     #tracks      = pd.read_csv('/data/trackMLDB/analysis/train_2_realv4aux')
-    tracks      = pd.read_csv(dir_ev = sys.argv[1])
+    tracks      = pd.read_csv(sys.argv[1])
 
     #cut Particle Information
     tracks_real = tracks.iloc[:,5:-1]

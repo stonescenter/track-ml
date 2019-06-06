@@ -29,7 +29,7 @@ from sklearn.model_selection import RandomizedSearchCV
 # fix random seed for reproducibility
 seed = 7
 np.random.seed(seed)
-   
+
 event_prefix = sys.argv[1]
 df = pd.read_csv(event_prefix)
 
@@ -47,20 +47,27 @@ encoder.fit(y)
 encoded_Y = encoder.transform(y)
 
 #Separate Train and Test
-X_train, X_test, y_train, y_test = train_test_split(X, encoded_Y, test_size=0.3)
-
+X_train, X_test, y_train, y_test = train_test_split(X, encoded_Y, test_size=0.05)
+#t=X_test[1,]
+#print(t)
+#print(t.shape)
+#print(X_test[1,])
 
 activation = 'hard_sigmoid'
-neurons    = 8
+neurons    = 4
 init_mode  = 'he_normal'
 opt        = 'Adadelta'
-epochs_num = 500
+epochs_num = 10
 
 classifier = Sequential()
 
 classifier.add(Dense(neurons, activation=activation, kernel_initializer=init_mode, input_dim=cols))
+
 classifier.add(Dense(neurons, activation=activation, kernel_initializer=init_mode))
-classifier.add(Dense(1, activation=activation, kernel_initializer=init_mode)) 
+classifier.add(Dropout(0.5))
+classifier.add(Dense(neurons, activation=activation, kernel_initializer=init_mode))
+
+classifier.add(Dense(1, activation=activation, kernel_initializer=init_mode))
 
 classifier.compile(optimizer =opt,loss='binary_crossentropy', metrics =['accuracy'])
 
@@ -69,6 +76,21 @@ eval_model=classifier.evaluate(X_test, y_test)
 
 print('Final test set loss: {:4f}'.format(eval_model[0]))
 print('Final test set accuracy: {:4f}'.format(eval_model[1]))
+
+#ynew = classifier.predict(X_test[1,])
+# show the inputs and predicted outputs
+#print("X=%s, Predicted=%s" % (X_test[1,:], ynew[0]))
+
+#os.makedirs('./model', exist_ok=True)
+#classifier.save('keras_model.h5')
+
+# serialize model to JSON
+model_json = classifier.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+# serialize weights to HDF5
+classifier.save_weights("model.h5")
+print("Saved model to disk")
 
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
