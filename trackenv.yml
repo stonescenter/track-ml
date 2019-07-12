@@ -10,7 +10,7 @@ dependencies:
   - blas=1.0=mkl
   - bleach=3.1.0=py36_0
   - c-ares=1.15.0=h7b6447c_1
-  - ca-certificates=2019.1.23=0
+  - ca-certificates=2019.5.15=0
   - certifi=2019.3.9=py36_0
   - cffi=1.11.5=py36he75722e_1
   - chardet=3.0.4=py36_1
@@ -74,7 +74,7 @@ dependencies:
   - notebook=5.7.4=py36_0
   - numpy=1.15.4=py36h7e9f1db_0
   - numpy-base=1.15.4=py36hde5b4d6_0
-  - openssl=1.1.1b=h7b6447c_1
+  - openssl=1.1.1c=h7b6447c_1
   - pandoc=2.2.3.2=0
   - pandocfilters=1.4.2=py36_1
   - parso=0.3.2=py36_0
@@ -131,23 +131,42 @@ dependencies:
   - zeromq=4.3.1=he6710b0_3
   - zlib=1.2.11=h7b6447c_3
   - pip:
+    - argh==0.26.2
     - boto==2.49.0
     - boto3==1.9.150
     - botocore==1.12.150
+    - click==7.0
     - dill==0.2.3
+    - docker-pycreds==0.4.0
     - docutils==0.14
     - gensim==0.12.4
+    - gitdb2==2.0.5
+    - gitpython==2.1.11
+    - gql==0.1.0
+    - graphql-core==2.2
     - idna==2.7
     - jmespath==0.9.4
     - neupy==0.8.2
     - nltk==3.1
+    - nvidia-ml-py3==7.352.0
     - pandas==0.16.0
+    - pathtools==0.1.2
     - progressbar2==3.34.3
+    - promise==2.2.1
+    - psutil==5.6.3
     - python-graphviz==0.5.1
     - python-utils==2.3.0
     - requests==2.20.0
+    - rx==1.6.1
     - s3transfer==0.2.0
     - scikit-learn==0.20.0
+    - sentry-sdk==0.9.0
+    - shortuuid==0.5.0
     - smart-open==1.8.3
+    - smmap2==2.0.5
+    - subprocess32==3.5.4
     - tqdm==3.7.1
+    - wandb==0.8.1
+    - watchdog==0.9.0
 prefix: /home/silvio/.conda/envs/trackml4
+

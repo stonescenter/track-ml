@@ -40,3 +40,19 @@ After create the environment wil you need to install a kaggle track library to m
 ```
 pip install --user git+https://github.com/LAL/trackml-library.git
 ```
+
+Executing experiments with LSTM:
+
+train the model:
+
+```
+CUDA_VISIBLE_DEVICES="0" python lstm-map-demo-div-v2.py track_real_for_lstm_experiment
+```
+
+the file model.h5 with NN model will be created
+
+Evaluate the model:
+
+```
+CUDA_VISIBLE_DEVICES="0" python lstm-map-demo-div-v2-inf.py track_real_for_lstm_experiment
+```
