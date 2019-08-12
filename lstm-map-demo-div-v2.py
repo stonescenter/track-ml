@@ -28,8 +28,8 @@ nextpart=cols+3
 seq_length=cols-1
 # define LSTM configuration
 n_batch = 1
-#n_epoch = 100
-n_epoch = 250
+n_epoch = 20
+#n_epoch = 250
 
 # generate training data
 seed(1)
@@ -38,22 +38,31 @@ event_file_name=ntpath.basename(event_prefix)
 
 df = pd.read_csv(event_prefix)
 
-dataX2=df.iloc[:, [1,2,3,7,8,9,13,14,15]]
-dataXfeatures=df.iloc[:, [4,5,6,10,11,12,16,17,18]]
+#dataX2=df.iloc[:, [1,2,3,7,8,9,13,14,15]]
+#dataXfeatures=df.iloc[:, [4,5,6,10,11,12,16,17,18]]
+
+dataX2=df.iloc[:, [7,8,9,13,14,15,19,20,21]]
+dataXfeatures=df.iloc[:, [10,11,16,17,22,23]]
 
 b = dataX2.values.flatten()
 bfeat=dataXfeatures.values.flatten()
 
 n_patterns=len(df)
 
+#X     = np.reshape(b,(n_patterns,3,3))
+#Xfeat = np.reshape(b,(n_patterns,3,3))
 X     = np.reshape(b,(n_patterns,3,3))
-Xfeat = np.reshape(b,(n_patterns,3,3))
-y=df.iloc[:, [19,20,21]]
+Xfeat = np.reshape(bfeat,(n_patterns,3,2))
+
+#y=df.iloc[:, [19,20,21]]
+y=df.iloc[:, [25,26,27]]
 
 X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.1)
 
+#xshape=Input(shape=(3,3))
+#yshape=Input(shape=(3,3))
 xshape=Input(shape=(3,3))
-yshape=Input(shape=(3,3))
+yshape=Input(shape=(3,2))
 
 #LSTM layers
 admi=LSTM(120,return_sequences=False)(xshape)
