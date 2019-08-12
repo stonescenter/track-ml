@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
@@ -12,12 +10,11 @@ from sklearn.model_selection import train_test_split
 
 from random import seed
 from random import randint
+
 from numpy import array
+import numpy as np
 
 from math import sqrt
-
-import numpy as np
-import pandas as pd
 
 import sys
 import os
@@ -27,131 +24,195 @@ import scipy.stats
 
 import seaborn as sns
 
+import pandas as pd
+
 from pandas.plotting import register_matplotlib_converters
+
+import matplotlib.pyplot as plt
 register_matplotlib_converters()
 
+def plot_results_inferences(df22):
+    sns.distplot(df22[0], color="blue") #, ax=axes[0,0], axlabel='X-original')
+    #plt.show()
 
-# generate training data
+def position_3D_approximation(y, result):
+    # y => original 3d point
+    # result => predicted
+
+    yclone = np.copy(y)
+    dfyclone = pd.DataFrame.from_records(yclone)
+
+    #df = pd.DataFrame({'X':result[0:10,0],'Y':result[0:10,1],'Z':result[0:10,2]})
+    df3d = pd.DataFrame({'X':result[:,0],'Y':result[:,1],'Z':result[:,2]})
+
+    df3d['X-pred'] = 0
+    df3d['Y-pred'] = 0
+    df3d['Z-pred'] = 0
+    df3d['ch0'] = 0
+    df3d['ch1'] = 0
+    df3d['w'] = 0
+
+    for index, row in df3d.iterrows():
+        #obtain the row with least geometric distance between predicted row and original rows (in yclone)
+        Xpred=df3d.loc[index, 'X']
+        Ypred=df3d.loc[index, 'Y']
+        Zpred=df3d.loc[index, 'Z']
+
+        dfyclone = pd.DataFrame.from_records(yclone)
+        dfyclone['geodist'] = ( abs(((dfyclone[0] - Xpred) **2) + ((dfyclone[1] - Ypred) **2)   + ((dfyclone[2] - Zpred) **2)) )
+
+        row=dfyclone.loc[dfyclone['geodist'].idxmin()]
+
+        lowerGeodistIndex=row.name
+
+        X=yclone[lowerGeodistIndex,0]
+        Y=yclone[lowerGeodistIndex,1]
+        Z=yclone[lowerGeodistIndex,2]
+        ch0=yclone[lowerGeodistIndex,3]
+        ch1=yclone[lowerGeodistIndex,4]
+
+        df3d.loc[index, 'X-pred'] = X
+        df3d.loc[index, 'Y-pred'] = Y
+        df3d.loc[index, 'Z-pred'] = Z
+        df3d.loc[index, 'ch0'] = ch0
+        df3d.loc[index, 'ch1'] = ch1
+
+        #remove the hit used as approximation
+        yclone = np.delete(yclone, lowerGeodistIndex, axis=0)
+
+    df3d.drop('X', axis=1, inplace=True)
+    df3d.drop('Y', axis=1, inplace=True)
+    df3d.drop('Z', axis=1, inplace=True)
+
+    #return the fourth hit of all tracks
+    return(df3d)
+
 seed(1)
+
+#Read input file with first 3 hits to dataframe
 event_prefix = sys.argv[1]
 event_file_name=ntpath.basename(event_prefix)
 df = pd.read_csv(event_prefix)
 
-dataX2=df.iloc[:, [1,2,3,7,8,9,13,14,15]]
-dataXfeatures=df.iloc[:, [4,5,6,10,11,12,16,17,18]]
+#dataframe with original values for evaluation
+#dfeval = pd.read_csv(event_prefix)
 
-b = dataX2.values.flatten()
-bfeat=dataXfeatures.values.flatten()
+#all tracks have at maximum 29 hits
+hits = np.arange(0,29,1)
 
-n_patterns=len(df)
+firstHit=1
+lastHit=4
 
-X     = np.reshape(b,(n_patterns,3,3))
-Xfeat = np.reshape(b,(n_patterns,3,3))
-y=df.iloc[:, [19,20,21]]
+print ("begin")
+df1 = df.iloc[:,0:24]
+print("!!-print(df1.shape) : ",df1.shape)
 
-X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.3)
+for firstHit in range(1, 24):
+    #print("firstHit : ", firstHit)
+    lastHit = lastHit + 1
+    #begin with 3 know hits
+    known_hits= np.arange(firstHit,lastHit,1)
+    #next hit to predict
+    hit_to_predict=known_hits[3]
+    '''
+    print(known_hits)
+    print(hit_to_predict)
+    print("print(df1.shape) : ",df1.shape)
+    print ("X")
+    print ( (hits[known_hits[0]]*6)+1,(hits[known_hits[0]]*6)+2,(hits[known_hits[0]]*6)+3 , (hits[known_hits[1]]*6)+1,(hits[known_hits[1]]*6)+2,(hits[known_hits[1]]*6)+3 , (hits[known_hits[2]]*6)+1,(hits[known_hits[2]]*6)+2,(hits[known_hits[2]]*6)+3)
+    print ("Xfeat")
+    print ( (hits[known_hits[0]]*6)+4,(hits[known_hits[0]]*6)+5 , (hits[known_hits[1]]*6)+4 , (hits[known_hits[1]]*6)+5  , (hits[known_hits[2]]*6)+4 , (hits[known_hits[2]]*6)+5)
+    print ("Y")
+    print ( (hits[hit_to_predict]*6)+1,(hits[hit_to_predict]*6)+2,(hits[hit_to_predict]*6)+3,(hits[hit_to_predict]*6)+4,(hits[hit_to_predict]*6)+5 )
+    '''
+    
+    cpton=((hits[known_hits[2]]*6)+5)+1
 
-xshape=Input(shape=(3,3))
-yshape=Input(shape=(3,3))
+    dataX2=df1.iloc[:, [ (hits[known_hits[0]]*6)+1,(hits[known_hits[0]]*6)+2,(hits[known_hits[0]]*6)+3 , (hits[known_hits[1]]*6)+1,(hits[known_hits[1]]*6)+2,(hits[known_hits[1]]*6)+3 , (hits[known_hits[2]]*6)+1,(hits[known_hits[2]]*6)+2,(hits[known_hits[2]]*6)+3 ]]
+    dataXfeatures=df1.iloc[:, [  (hits[known_hits[0]]*6)+4,(hits[known_hits[0]]*6)+5 , (hits[known_hits[1]]*6)+4 , (hits[known_hits[1]]*6)+5  , (hits[known_hits[2]]*6)+4 , (hits[known_hits[2]]*6)+5  ]]#dataXfeatures=df.iloc[:, [  hits[known_hits[0]]+4,hits[known_hits[0]]+5,hits[known_hits[0]]+6 , hits[known_hits[1]]+4,hits[known_hits[1]]+5,hits[known_hits[1]]+6 , hits[known_hits[2]]+4,hits[known_hits[2]]+5,hits[known_hits[2]]+6  ]]
 
-# load model
-model = load_model('model.h5')
-result = model.predict([X_test, Xfeat_test]) #, batch_size=n_batch, verbose=0)
+    #prepare data to inference
+    b = dataX2.values.flatten()
+    bfeat=dataXfeatures.values.flatten()
+    n_patterns=len(df)
+    X     = np.reshape(b,(n_patterns,3,3))
+    Xfeat = np.reshape(bfeat,(n_patterns,3,2))
+    #Xfeat = np.reshape(b,(n_patterns,3,3))
 
-x0 = y_test.iloc[:, [0]]
-x1 = y_test.iloc[:, [1]]
-x2 = y_test.iloc[:, [2]]
-pred0 = result[:, [0]]
-pred1 = result[:, [1]]
-pred2 = result[:, [2]]
+    #original hit that will be predicted
+    y=df.iloc[:, [ (hits[hit_to_predict]*6)+1,(hits[hit_to_predict]*6)+2,(hits[hit_to_predict]*6)+3,(hits[hit_to_predict]*6)+4,(hits[hit_to_predict]*6)+5 ]]
 
-diff0 = x0.copy()
-diff0['Score_diff'] =  x0.sub(pred0, axis=0) 
-df0 = diff0.iloc[:, [1]]
+    #perform the prediction
+    model = load_model('model.h5')
+    result = model.predict([X, Xfeat])
+    pred = position_3D_approximation(y, result)
 
-diff1 = x1.copy()
-diff1['Score_diff'] =  x1.sub(pred1, axis=0) 
-df1 = diff1.iloc[:, [1]]
+    #concat tracks with predicted positions
+    df1= pd.concat([df1,pred],axis=1) #, keys=['One','Two'])
 
-diff2 = x2.copy()
-diff2['Score_diff'] =  x2.sub(pred2, axis=0) 
-df2 = diff2.iloc[:, [1]]
+    # evaluation
+    dfglobal_original = np.hstack((dataX2,y))
+    dfglobal_predicted = np.hstack((dataX2,pred))
 
-# plot
+    dftot = pd.DataFrame.from_records(dfglobal_predicted)
+    dftot2 = pd.DataFrame.from_records(dfglobal_original)
 
-fig, axes = plt.subplots(2, 3, figsize=(25, 10), sharey=True, dpi=100)
-sns.distplot(x0 , color="blue", ax=axes[0,0], axlabel='X-original')
-sns.distplot(pred0 , color="dodgerblue", ax=axes[0,0], axlabel='X-predicted')
-sns.distplot(x1 , color="pink", ax=axes[0,1], axlabel='Y-original')
-sns.distplot(pred1 , color="deeppink", ax=axes[0,1], axlabel='Y-predicted')
-sns.distplot(x2 , color="gold", ax=axes[0,2], axlabel='Z-original')
-sns.distplot(pred2 , color="yellow", ax=axes[0,2], axlabel='Z-predicted')
+    #print(dftot)
+    #print(dftot2)
 
-sns.distplot(df0 , color="blue", ax=axes[1,0], axlabel='X-difference')
-sns.distplot(df1 , color="pink", ax=axes[1,1], axlabel='Y-difference')
-sns.distplot(df2 , color="gold", ax=axes[1,2], axlabel='Z-difference')
-plt.savefig("/home/silvio/eval.png")
-plt.show()
+    dftotfinal = pd.DataFrame( abs(((dftot[9] - dftot2[9]) **2) + ((dftot[10] - dftot2[10]) **2)   + ((dftot[11] - dftot2[11]) **2)) )
 
-'''
-# plot
-#fig, axes = plt.subplots(1, 1, figsize=(25, 10), sharey=True, dpi=100)
-sns.plot(x0 , color="blue",  axlabel='X-original')
-sns.plot(pred0 , color="dodgerblue", axlabel='X-predicted')
+    seriesObj = dftotfinal.apply(lambda x: True if x[0] == 0 else False , axis=1)
+    numOfRows = len(seriesObj[seriesObj == True].index)
+    print('equal 0 : ', numOfRows)
 
-plt.show()
-'''
+    maxV=dftotfinal[0].max()
+    minV=dftotfinal[0].min()
 
-'''
-#print(df.iloc[:, [0]])
-#print(df)
-rg=range(20000)
+    if ((maxV == 0) and (minV == 0)):
+        print('max : ' , maxV )
+        print('min : ' , minV )
+    else:
+        print('mean geodist from original values : ' , dftotfinal[0].mean())
+        print('max : ' , maxV )
+        print('min : ' , minV )
+        #print('equal 0: ', dftotfinal[dftotfinal[0] == 0].sum()  )
 
-
-dt = x0.copy()
-#dt["id"]=rg
-dt['id'] = dt.reset_index().index
-dt["X-original"]=y_test.iloc[:, [0]]
-dt["X-predicted"]=result[:, [0]]
-
-print(dt)
-
-dt["Y-original"]=y_test.iloc[:, [1]]
-dt["Y-predicted"]=result[:, [1]]
-
-
-dt["Z-original"]=y_test.iloc[:, [2]]
-dt["Z-predicted"]=result[:, [2]]
-'''
-'''
-sns.set(style="whitegrid")
-values = dt
-data = pd.DataFrame(values, columns=["X-original", "X-predicted"])
-data = data.rolling(7).mean()
-
-data1 = pd.DataFrame(values, columns=["Y-original", "Y-predicted"])
-data1 = data.rolling(7).mean()
-
-data2 = pd.DataFrame(values, columns=["Z-original", "Z-predicted"])
-data2 = data.rolling(7).mean()
-
-fig, axes = plt.subplots(1, 3, figsize=(25, 10), sharey=True, dpi=100)
-sns.relplot(data=data, palette="tab10", ax=axes[0])# , linewidth=2.5)
-sns.relplot(data=data1, palette="tab10", ax=axes[1])# ,linewidth=2.5)
-sns.relplot(data=data2, palette="tab10", ax=axes[2]) #,linewidth=2.5)
+    plot_results_inferences(dftotfinal)
 
 
+    '''
+    print('===========================================')
+    print('X')
+    print(X)
+    print('===========================================')
+    print('Xfeat')
+    print(Xfeat)
+    print('===========================================')
+    print('y')
+    print(y)
+    print('===========================================')
+    '''
 
-plt.show()
-'''
-'''
-#sns.scatterplot(x="X-original", y="X-predicted", data=dt)
-values = dt
-data = pd.DataFrame(values, columns=["id","X-original", "X-predicted"])
-data = data.rolling(7).mean()
+    '''
+    print('===========================================')
+    print('dfglobal_original')
+    print(dfglobal_original)
+    print('===========================================')
+    print('dfglobal_predicted')
+    print(dfglobal_predicted)
+    print('===========================================')
+    '''
 
-sns.relplot(x="id", y="X-predicted", kind="scatter", data=data) #col="region", 
-plt.show()
-'''
-
-
+    #dftotfinal['Xdiff'] = pd.DataFrame(abs(dftot[9]) - abs(dftot2[9])) + (abs(dftot[10]) - abs(dftot2[10])) + (abs(dftot[11]) - abs(dftot2[11]))
+    #dftotfinal = pd.DataFrame( (abs((dftot[9] - dftot2[9]))) + (abs((dftot[10] - dftot2[10]))) + (abs(dftot[11]) - abs(dftot2[11])) )
+    #df22=dftotfinal.sort_values(by='Xdiff')
+    #print(dftotfinal)
+    #print('sum : ' , dftotfinal[0].sum() )
+    #print('max : ' , dftotfinal[0].max() )
+    #print('min : ' , dftotfinal[0].min() )
+    #print('shape : ' , dftotfinal.shape[0] )
+    #ss=dftotfinal[0].sum()
+    #sh=dftotfinal.shape[0]
+    #av=ss/sh
+    #print('av : ' , av )
