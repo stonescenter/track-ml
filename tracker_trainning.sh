@@ -5,7 +5,7 @@ dir="$user_dir"/input_files_for_track
 
 if [ -d $dir ] ; then
 
-am=100
+am=1000
 
 #obtain a subset of tracks to be reconstructed
 head -n $am /data/trackMLDB/analysis/pt1p0_train_1_realv3 > ~/input_files_for_track/pt1p0_train_1_realv3_"$am"_`hostname`
