@@ -188,8 +188,10 @@ def track_plot(df_tb_plt, **kwargs):
     
     if kwargs.get('title'):
         title = kwargs.get('title')
-        
-        
+    
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+
     dft_size = df_tb_plt.shape[1]
     len_xyz = int(dft_size/pivot)
 
@@ -280,7 +282,7 @@ def track_plot(df_tb_plt, **kwargs):
     fig = dict(data = data, layout = layout)
 
     init_notebook_mode(connected=True)
-    iplot(fig, filename='plot_track_real_fake')
+    iplot(fig, filename=path)
 
 
     
