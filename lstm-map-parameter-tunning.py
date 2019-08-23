@@ -7,9 +7,9 @@ from keras.layers import CuDNNLSTM
 from keras.layers import concatenate,Input,Flatten
 from keras.models import Model
 
-
 import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
+
 
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -114,8 +114,9 @@ def create_Neural_Network(neurons,init_mode,activation,opt,lossf):
     admi=CuDNNLSTM(neurons,return_sequences=False,return_state=False)(xshape)
     pla=CuDNNLSTM(neurons,return_sequences=False,return_state=False)(yshape)
 
-    #admi=LSTM(neurons,return_sequences=False)(xshape)
-    #pla=LSTM(neurons,return_sequences=False)(yshape)
+    #admi=LSTM(neurons,return_sequences=False,return_state=False)(xshape)
+    #pla=LSTM(neurons,return_sequences=False,return_state=False)(yshape)
+
     out=concatenate([admi,pla],axis=-1)
 
     #output=Dense(3, activation=activation, kernel_initializer=init_mode)(out)
@@ -138,8 +139,8 @@ def evaluate_model(history,model):
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper right')
-    plt.savefig(lossfile)
-    plt.show()
+    plt.savefig("/home/silvio/loss.png")
+    #plt.show()
 
 print("1 ", datetime.datetime.now())
 
@@ -151,29 +152,78 @@ set_session(sess)
 
 seed(1)
 event_prefix = sys.argv[1]
-modelfile = sys.argv[2]
-lossfile = sys.argv[3] #"model.h5"
+optFlag = int(sys.argv[2])
+print ("optFlag: ", optFlag)
 #prepare_data(event_prefix)
 #sys.exit(0)
 
+
+
 X, Xfeat, y = prepare_training_data(event_prefix)
-#X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.01)
-X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.1)
+X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.01)
 
 #model=create_Neural_Network(300,'normal','linear','SGD', 'cosine_proximity')
-model=create_Neural_Network(200,'normal','linear','RMSprop', 'logcosh')
+#model=create_Neural_Network(200,'normal','linear','Adamax', 'mean_squared_error')
 #model.compile(loss='mean_squared_error', optimizer='adam',metrics =['accuracy'])
 #model=create_Neural_Network(300,'normal','linear','SGD', 'mean_squared_error')
 
 #run training
 n_batch = 1
-n_epoch = 10 #00
+n_epoch = 20
 
-print("22 ",datetime.datetime.now())
-history = model.fit([X_train, Xfeat_train], y_train, epochs=n_epoch, verbose=2)
-
-model.save(modelfile) #Save the model
+#print("22 ",datetime.datetime.now())
+#history = model.fit([X_train, Xfeat_train], y_train, epochs=n_epoch, verbose=2)
+#model.save("model.h5") #Save the model
 #evaluate model
-eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=2)
 
-evaluate_model(history,model)
+#eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=0)
+
+
+#neurons = [100,200,300,400,500,600,700,800]#,4,8]#,16,32,64,128] #[2,4,8,16] #,32,64,128,512,1024,2048]
+neurons = [300]#,4,8]#,16,32,64,128] #[2,4,8,16] #,32,64,128,512,1024,2048]
+#init = ['he_normal','uniform', 'lecun_uniform', 'normal', 'zero', 'glorot_normal', 'glorot_uniform', 'he_uniform']
+init = ['normal']
+#activation =  ['hard_sigmoid' , 'relu', 'tanh', 'sigmoid', 'linear', 'softmax','softplus', 'softsign' ]
+activation =  ['linear']
+
+#opt = [ 'Adadelta','SGD', 'RMSprop', 'Adagrad', 'Adam', 'Adamax', 'Nadam']
+
+if (optFlag == 0):
+    opt = [ 'Adadelta','SGD', 'RMSprop' ]
+else:
+    opt = [ 'Adagrad', 'Adam', 'Adamax', 'Nadam']
+
+losses = ['mean_squared_error','mean_absolute_error','mean_absolute_percentage_error',
+          'mean_squared_logarithmic_error','squared_hinge','hinge',
+          'categorical_hinge','logcosh','kullback_leibler_divergence',
+          'poisson','cosine_proximity']
+
+#'binary_crossentropy',
+#lst = [0,1,2,3,4,5,6,7]
+
+#for ida in range(len(neurons)):
+#    for idb in range(len(init)):
+#        for idc in range(len(activation)):
+ida=0
+idb=0
+idc=0
+for idd in range(len(opt)):
+    for ide in range(len(losses)):
+
+        #print(idx)
+        #model=create_Neural_Network(100,'uniform','linear', 'Adamax','mean_squared_error')
+        model=create_Neural_Network(neurons[ida],init[idb],activation[idc], opt[idd],losses[ide])
+
+        #run training
+        n_batch = 1
+        n_epoch = 20
+        history = model.fit([X_train, Xfeat_train], y_train, epochs=n_epoch, verbose=0)
+        #model.save("model.h5") #Save the model
+        #evaluate model
+
+        eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=0)
+        print(opt[idd], ida,",",idb,",",idc,",",idd,",",ide,',{:4f}'.format(eval_model[0]),',{:4f}'.format(eval_model[1]))
+        #print('loss: {:4f}'.format(eval_model[0]))
+        #print('accuracy: {:4f}'.format(eval_model[1]))
+
+        #evaluate_model(history,model)
