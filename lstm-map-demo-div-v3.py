@@ -167,7 +167,7 @@ model=create_Neural_Network(200,'normal','linear','RMSprop', 'logcosh')
 
 #run training
 n_batch = 1
-n_epoch = 10 #00
+n_epoch = 30 #00
 
 print("22 ",datetime.datetime.now())
 history = model.fit([X_train, Xfeat_train], y_train, epochs=n_epoch, verbose=2)
