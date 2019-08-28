@@ -285,9 +285,9 @@ def track_plot(df_tb_plt, **kwargs):
 
     init_notebook_mode(connected=True)
     
-    if (fullscreen == False)
+    if (fullscreen == False):
         iplot(fig)
-    else
+    else:
         fig.write_html('figure.html', auto_open=True)
 
 
