@@ -169,6 +169,8 @@ def xyz_bsort(df_to_be_sorted, **kwargs):
     
 
 #function to plot tracks
+
+'''
 def track_plot(df_tb_plt, **kwargs):
     
     global pivot
@@ -176,7 +178,7 @@ def track_plot(df_tb_plt, **kwargs):
     track_color = 'red'
     n_tracks = 1
     title = 'Track plots'
-    fullscreen = False
+    path = 'chart.html'
     
     if kwargs.get('track_color'):
         track_color = kwargs.get('track_color')
@@ -190,10 +192,6 @@ def track_plot(df_tb_plt, **kwargs):
     if kwargs.get('title'):
         title = kwargs.get('title')
     
-    if kwargs.get('fullscreen'):
-        fullscreen = kwargs.get('fullscreen')
-    
-
     dft_size = df_tb_plt.shape[1]
     len_xyz = int(dft_size/pivot)
 
@@ -285,12 +283,145 @@ def track_plot(df_tb_plt, **kwargs):
 
     init_notebook_mode(connected=True)
     
-    if (fullscreen == False):
-        iplot(fig)
+    
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+        fig.write_html(path, auto_open=True)        
     else:
-        fig.write_html('figure.html', auto_open=True)
+        iplot(fig)
+'''      
+        
+#NEW FUNCTION PLOT
 
+#function to plot tracks
+def track_plot(df_tb_plt, **kwargs):
+    
+    global pivot
+    
+    track_color = 'red'
+    n_tracks = 1
+    title = 'Track plots'
+    path = 'chart.html'
+    
+    if kwargs.get('track_color'):
+        track_color = kwargs.get('track_color')
+    
+    if kwargs.get('n_tracks'):
+        n_tracks = kwargs.get('n_tracks')
+    
+    if kwargs.get('pivot'):
+        pivot = kwargs.get('pivot')
+    
+    if kwargs.get('title'):
+        title = kwargs.get('title')
+    
+    dft_size = df_tb_plt.shape[1]
+    len_xyz = int(dft_size/pivot)
 
+    # Initializing lists of indexes
+    selected_columns_x = np.zeros(len_xyz)
+    selected_columns_y = np.zeros(len_xyz)
+    selected_columns_z = np.zeros(len_xyz)
+
+    # Generating indexes
+    for i in range(len_xyz):
+        selected_columns_x[i] = int(i*pivot)
+        selected_columns_y[i] = int(i*pivot+1)
+        selected_columns_z[i] = int(i*pivot+2)
+
+    # list of data to plot
+    data = []
+    track = [None] * n_tracks
+
+ 
+    for i in range(n_tracks):
+        track[i] = go.Scatter3d(
+            # Removing null values (zeroes) in the plot
+            x = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_x],
+            y = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_y],
+            z = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_z],
+            # x,y,z data with null values (zeroes)
+            #
+            # x = df_hits_x.iloc[i,:],
+            # y = df_hits_y.iloc[i,:],
+            # z = df_hits_z.iloc[i,:],
+            marker = dict(
+                size = 1,
+                color = track_color,
+            ),
+            line = dict(
+                color = track_color,
+                width = 1
+            )
+        )
+        # append the track[i] in the list for plotting
+        data.append(track[i])
+        
+        
+    layout = dict(
+        #width    = 900,
+        #height   = 750,
+        autosize = True,
+        title    = title,
+        scene = dict(
+            xaxis = dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           ='x (mm)'
+            ),
+            yaxis=dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           = 'y (mm)'
+            ),
+            zaxis=dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           = 'z (mm)'
+            ),
+            camera = dict(
+                up = dict(
+                    x = 0,
+                    y = 0,
+                    z = 1
+                ),
+                eye = dict(
+                    x = -1.7428,
+                    y = 1.0707,
+                    z = 0.7100,
+                )
+            ),
+            aspectratio = dict( x = 1, y = 1, z = 0.7),
+            aspectmode = 'manual'
+        ),
+    )
+
+    fig =  go.Figure(data = data,
+                     layout = layout)
+    
+    
+    init_notebook_mode(connected=True)
+    
+    
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+        fig.write_html(path, auto_open=True)  
+        #fig.show(renderer='html')
+    else:
+        iplot(fig)
+        
+        
+        
+           
+ 
+        
+        
 def convert_track_xyz_to_rhoetaphi(df_in):
 
     len_xyz = df_in.shape[0] // pivot
@@ -305,6 +436,10 @@ def convert_track_xyz_to_rhoetaphi(df_in):
             df_in.iloc[pivot_tmp] = rho 
             df_in.iloc[pivot_tmp + 1] = eta
             df_in.iloc[pivot_tmp + 2] = phi
+            
+            
+            
+            
 
             
 def convert_track_rhoetaphi_to_xyz(df_in, df_out):
