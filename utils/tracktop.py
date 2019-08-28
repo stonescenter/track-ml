@@ -176,6 +176,7 @@ def track_plot(df_tb_plt, **kwargs):
     track_color = 'red'
     n_tracks = 1
     title = 'Track plots'
+    fullscreen = False
     
     if kwargs.get('track_color'):
         track_color = kwargs.get('track_color')
@@ -189,8 +190,9 @@ def track_plot(df_tb_plt, **kwargs):
     if kwargs.get('title'):
         title = kwargs.get('title')
     
-    if kwargs.get('path'):
-        path = kwargs.get('path')
+    if kwargs.get('fullscreen'):
+        fullscreen = kwargs.get('fullscreen')
+    
 
     dft_size = df_tb_plt.shape[1]
     len_xyz = int(dft_size/pivot)
@@ -282,10 +284,13 @@ def track_plot(df_tb_plt, **kwargs):
     fig = dict(data = data, layout = layout)
 
     init_notebook_mode(connected=True)
-    iplot(fig, filename=path)
-
-
     
+    if (fullscreen == False)
+        iplot(fig)
+    else
+        fig.write_html('figure.html', auto_open=True)
+
+
 def convert_track_xyz_to_rhoetaphi(df_in):
 
     len_xyz = df_in.shape[0] // pivot
