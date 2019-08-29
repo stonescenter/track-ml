@@ -16,6 +16,23 @@ def position_3D_approximation(result, strategy):
     global dfyclone
     global yclone
 
+    #print(result)
+    #print(result.shape)
+    #print(result.shape[0], 3)
+    #result.reshape((result.shape[0], 3))
+    #a = result.reshape(result.shape[0], 3)
+    #print(a.shape)
+
+    if (Neural_Network_Model == 3): #LSTM without channel
+        result = result.reshape(result.shape[0], 3)
+    #print(result.shape)
+    #b = result.values.flatten()
+    #n_patterns=len(result)
+    #print(n_patterns)
+    #result = np.reshape(b,(n_patterns,3))
+    #print(result)
+
+
     df3d = pd.DataFrame({'X':result[:,0],'Y':result[:,1],'Z':result[:,2]})
 
     #print(df3d)
@@ -83,6 +100,7 @@ reconstructed_tracks_file = sys.argv[4]
 #strategyFlag=0 -> LSTM
 #strategyFlag=1 -> Random
 strategyFlag= int(sys.argv[5])
+Neural_Network_Model= int(sys.argv[6])
 
 df = pd.read_csv(tracks_to_be_reconstructed_file)
 
@@ -122,7 +140,13 @@ for firstHit in range(1, 26):
     #perform the prediction
     model = load_model(trained_model_file)
 
-    result = model.predict([X, Xfeat],verbose=1)
+    if (Neural_Network_Model == 1): #LSTM with channel as features
+        result = model.predict([X, Xfeat],verbose=1)
+    if (Neural_Network_Model == 2): #MLP
+        result = model.predict(dataX2,verbose=1)
+    if (Neural_Network_Model == 3): #LSTM without channel
+        result = model.predict(X,verbose=1)
+
     pred = position_3D_approximation(result, strategyFlag)
 
     #concat tracks with predicted positions
