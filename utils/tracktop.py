@@ -423,7 +423,70 @@ def track_plot(df_tb_plt, **kwargs):
         
         
         
-           
+def track_plot_hist(df_tb_plt, **kwargs):
+    bar_color = 'blue'
+    n_bins = 30
+    title = 'Histogram of Tracks'
+    path = 'histogram.html'
+    x_title = 'x'
+    y_title = 'y'
+    
+    if kwargs.get('bar_color'):
+        bar_color = kwargs.get('bar_color')
+    if kwargs.get('n_bins'):
+        n_bins = kwargs.get('n_bins')
+    if kwargs.get('title'):
+        title = kwargs.get('title')
+    if kwargs.get('x_title'):
+        x_title = kwargs.get('x_title')
+    if kwargs.get('y_title'):
+        y_title = kwargs.get('y_title')
+        
+    fig = go.Figure()
+
+    fig.add_trace(go.Histogram(x = df_tb_plt, nbinsx = n_bins, marker_color = bar_color))
+    fig.update_layout(
+        title = go.layout.Title(
+            text = title,
+            font = dict(
+                    #family="Courier New, monospace",
+                    size=18,
+                    color='#000'
+            ),
+            xref = 'paper',
+            x = 0
+        ),
+        xaxis = go.layout.XAxis(
+            title = go.layout.xaxis.Title(
+                text = x_title,
+                font = dict(
+                    #family="Courier New, monospace",
+                    size = 18,
+                    color = '#000'
+                )
+            )
+        ),
+        yaxis = go.layout.YAxis(
+            title = go.layout.yaxis.Title(
+                text = y_title,
+                font = dict(
+                    #family="Courier New, monospace",
+                    size = 18,
+                    color = '#000'
+                )
+            )
+        )
+    )
+
+    #init_notebook_mode(connected=True)
+    
+    
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+        fig.write_html(path, auto_open = True)  
+        #fig.show(renderer='html')
+    else:
+        fig.show()           
  
         
         
