@@ -105,6 +105,39 @@ def prepare_training_data(event_prefix):
     y=df.iloc[:, [25,26,27]]
     return(X, Xfeat, y)
 
+def prepare_training_data_MLP(event_prefix):
+
+    event_file_name=ntpath.basename(event_prefix)
+
+    df = pd.read_csv(event_prefix)
+
+    dataX2=df.iloc[:, [7,8,9,10,11,13,14,15,16,17,19,20,21,22,23]]
+    dataXfeatures=df.iloc[:, [10,11,16,17,22,23]]
+    b = dataX2.values.flatten()
+    bfeat=dataXfeatures.values.flatten()
+    n_patterns=len(df)
+    #X     = np.reshape(b,(n_patterns,3,3))
+    Xfeat = np.reshape(bfeat,(n_patterns,3,2))
+    y=df.iloc[:, [25,26,27]]
+    return(dataX2, Xfeat, y)
+
+
+def create_Neural_Network_MLP(neurons,init_mode,activation,opt,lossf):
+    #create Neural Network
+    activation = 'hard_sigmoid'
+    #neurons    = 100
+    init_mode  = 'he_normal'
+    opt        = 'Adadelta'
+    epochs_num = 10
+
+    model = Sequential()
+
+    model.add(Dense(neurons, activation=activation, kernel_initializer=init_mode, input_dim=15))
+    model.add(Dense(neurons, activation=activation, kernel_initializer=init_mode))
+    model.add(Dense(3, activation=activation, kernel_initializer=init_mode))
+    model.compile(optimizer = opt,loss=lossf, metrics =['accuracy'])
+    return(model)
+
 
 def create_Neural_Network(neurons,init_mode,activation,opt,lossf):
     #create Neural Network
@@ -159,8 +192,9 @@ print ("optFlag: ", optFlag)
 
 
 
-X, Xfeat, y = prepare_training_data(event_prefix)
-X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.01)
+#X, Xfeat, y = prepare_training_data(event_prefix)
+X, Xfeat, y = prepare_training_data_MLP(event_prefix)
+X_train, X_test, Xfeat_train, Xfeat_test, y_train, y_test = train_test_split(X, Xfeat, y, test_size=0.2)
 
 #model=create_Neural_Network(300,'normal','linear','SGD', 'cosine_proximity')
 #model=create_Neural_Network(200,'normal','linear','Adamax', 'mean_squared_error')
@@ -204,26 +238,34 @@ losses = ['mean_squared_error','mean_absolute_error','mean_absolute_percentage_e
 #for ida in range(len(neurons)):
 #    for idb in range(len(init)):
 #        for idc in range(len(activation)):
+opt = [ 'RMSprop' ]
 ida=0
 idb=0
 idc=0
-for idd in range(len(opt)):
-    for ide in range(len(losses)):
+idd=0
+#for idd in range(len(opt)):
+for ide in range(len(losses)):
 
-        #print(idx)
-        #model=create_Neural_Network(100,'uniform','linear', 'Adamax','mean_squared_error')
-        model=create_Neural_Network(neurons[ida],init[idb],activation[idc], opt[idd],losses[ide])
+    #print(idx)
+    #model=create_Neural_Network(100,'uniform','linear', 'Adamax','mean_squared_error')
 
-        #run training
-        n_batch = 1
-        n_epoch = 20
-        history = model.fit([X_train, Xfeat_train], y_train, epochs=n_epoch, verbose=0)
-        #model.save("model.h5") #Save the model
-        #evaluate model
+    #model=create_Neural_Network(neurons[ida],init[idb],activation[idc], opt[idd],losses[ide])
+    model=create_Neural_Network_MLP(neurons[ida],init[idb],activation[idc], opt[idd],losses[ide])
 
-        eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=0)
-        print(opt[idd], ida,",",idb,",",idc,",",idd,",",ide,',{:4f}'.format(eval_model[0]),',{:4f}'.format(eval_model[1]))
-        #print('loss: {:4f}'.format(eval_model[0]))
-        #print('accuracy: {:4f}'.format(eval_model[1]))
+    #run training
+    n_batch = 1
+    n_epoch = 20
+    history = model.fit(X_train, y_train, epochs=n_epoch, verbose=0)
+    #history = model.fit([X_train, Xfeat_train], y_train, epochs=n_epoch, verbose=0)
+    #model.save("model.h5") #Save the model
+    #evaluate model
 
-        #evaluate_model(history,model)
+    #eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=0)
+    eval_model=model.evaluate(X_test, y_test, verbose=0)
+
+    #eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=0)
+    print(opt[idd], ida,",",idb,",",idc,",",idd,",",ide,',{:4f}'.format(eval_model[0]),',{:4f}'.format(eval_model[1]))
+    #print('loss: {:4f}'.format(eval_model[0]))
+    #print('accuracy: {:4f}'.format(eval_model[1]))
+
+    #evaluate_model(history,model)

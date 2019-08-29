@@ -145,12 +145,12 @@ def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
 
 #function to sort a line of a track dataset divided by hits with 6 elements
 def xyz_bsort(df_to_be_sorted, **kwargs):
-    global pivot 
+    global pivot
     if kwargs.get('pivot'):
         pivot = kwargs.get('pivot')
-        
+
     #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
-    
+
     index_xyz = []
     df_n_col  = df_to_be_sorted.shape[0]//pivot
     for aux in range(0,df_n_col):
@@ -163,32 +163,32 @@ def xyz_bsort(df_to_be_sorted, **kwargs):
         for j in range(0, len(index_xyz) - i):
             if index_xyz[j] > index_xyz[j + 1]:
                 xyz_swap(df_to_be_sorted, index_xyz, j, j+1, pivot)
-    
+
     #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
-    
-    
+
+
 
 #function to plot tracks
 def track_plot(df_tb_plt, **kwargs):
-    
+
     global pivot
-    
+
     track_color = 'red'
     n_tracks = 1
     title = 'Track plots'
-    
+
     if kwargs.get('track_color'):
         track_color = kwargs.get('track_color')
-    
+
     if kwargs.get('n_tracks'):
         n_tracks = kwargs.get('n_tracks')
-    
+
     if kwargs.get('pivot'):
         pivot = kwargs.get('pivot')
-    
+
     if kwargs.get('title'):
         title = kwargs.get('title')
-    
+
     if kwargs.get('path'):
         path = kwargs.get('path')
 
@@ -210,7 +210,7 @@ def track_plot(df_tb_plt, **kwargs):
     data = []
     track = [None] * n_tracks
 
- 
+
     for i in range(n_tracks):
         track[i] = go.Scatter3d(
             # Removing null values (zeroes) in the plot
@@ -233,8 +233,8 @@ def track_plot(df_tb_plt, **kwargs):
         )
         # append the track[i] in the list for plotting
         data.append(track[i])
-        
-        
+
+
     layout = dict(
         width    = 900,
         height   = 750,
@@ -282,63 +282,63 @@ def track_plot(df_tb_plt, **kwargs):
     fig = dict(data = data, layout = layout)
 
     init_notebook_mode(connected=True)
-    iplot(fig, filename=path)
+    iplot(fig) #, filename=path)
 
 
-    
+
 def convert_track_xyz_to_rhoetaphi(df_in):
 
     len_xyz = df_in.shape[0] // pivot
 
     for i in range(len_xyz):
         pivot_tmp = i * pivot
-        x = df_in.iloc[pivot_tmp] 
-        y = df_in.iloc[pivot_tmp + 1] 
+        x = df_in.iloc[pivot_tmp]
+        y = df_in.iloc[pivot_tmp + 1]
         z = df_in.iloc[pivot_tmp + 2]
         if (x != 0 and y != 0 and z != 0):
             rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
-            df_in.iloc[pivot_tmp] = rho 
+            df_in.iloc[pivot_tmp] = rho
             df_in.iloc[pivot_tmp + 1] = eta
             df_in.iloc[pivot_tmp + 2] = phi
 
-            
+
 def convert_track_rhoetaphi_to_xyz(df_in, df_out):
 
     len_xyz = df_in.shape[0] // pivot
 
     for i in range(len_xyz):
         pivot_tmp = i * pivot
-        rho = df_in.iloc[pivot_tmp] 
-        eta = df_in.iloc[pivot_tmp + 1] 
+        rho = df_in.iloc[pivot_tmp]
+        eta = df_in.iloc[pivot_tmp + 1]
         phi = df_in.iloc[pivot_tmp + 2]
         if (rho != 0 and eta != 0 and phi != 0):
             x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
-            df_out.iloc[pivot_tmp] = x 
+            df_out.iloc[pivot_tmp] = x
             df_out.iloc[pivot_tmp + 1] = y
             df_out.iloc[pivot_tmp + 2] = z
-            
-            
+
+
 def convert_track_etaphi_err(df_in, err_func = err_normal, **kwargs):
     err = default_err
-    
+
     if kwargs.get('err'):
         err = kwargs.get('err')
 
     len_xyz = df_in.shape[0] // pivot
-        
+
     for i in range(len_xyz):
         pivot_tmp = i * pivot
-        x = df_in.iloc[pivot_tmp] 
-        y = df_in.iloc[pivot_tmp + 1] 
+        x = df_in.iloc[pivot_tmp]
+        y = df_in.iloc[pivot_tmp + 1]
         z = df_in.iloc[pivot_tmp + 2]
         if (x != 0 and y != 0 and z != 0):
-            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)       
-            eta = err_func(eta, err) 
+            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+            eta = err_func(eta, err)
             phi = err_func(phi, err)
 
             x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
-            
-            df_in.iloc[pivot_tmp] = x 
+
+            df_in.iloc[pivot_tmp] = x
             df_in.iloc[pivot_tmp + 1] = y
             df_in.iloc[pivot_tmp + 2] = z
 # fmt:on
