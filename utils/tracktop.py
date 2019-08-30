@@ -489,7 +489,47 @@ def track_plot_hist(df_tb_plt, **kwargs):
         fig.show()           
  
         
-        
+def track_plot_id(df_tb_plt, **kwargs):
+    global pivot
+    #pivot = 6
+    track_color = 'red'
+    n_tracks = 1
+    title = 'Track plots'
+    path = 'chart.html'
+    track_id = 0
+    
+    if kwargs.get('track_color'):
+        track_color = kwargs.get('track_color')
+    
+    if kwargs.get('n_tracks'):
+        n_tracks = kwargs.get('n_tracks')
+    
+    if kwargs.get('pivot'):
+        pivot = kwargs.get('pivot')
+    
+    if kwargs.get('title'):
+        title = kwargs.get('title')
+    
+    if kwargs.get('track_id'):
+        track_id = kwargs.get('track_id')
+        title = 'plot of track #' + str(track_id)
+    
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+        track_plot(df_tb_plt.iloc[track_id:track_id + 1,:],
+               track_color=track_color,
+               n_tracks=n_tracks,
+               title = title,
+               pivot=pivot,
+               path=path)
+    else:
+        track_plot(df_tb_plt.iloc[track_id:track_id + 1,:],
+               track_color=track_color,
+               n_tracks=n_tracks,
+               title = title,
+               pivot=pivot)
+    
+    
 
 def convert_track_xyz_to_rhoetaphi(df_in):
 
