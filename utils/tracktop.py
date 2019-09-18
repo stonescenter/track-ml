@@ -8,12 +8,14 @@ import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from transformation import *
 import pandas as pd
+import warnings
 
 default_err = 0.03
 default_err_fad = 0.174
 default_len_err = 500
 default_center = 1
-pivot = 6
+pivot = 8
+shift = 1
 
 
 def scale_range(input, min, max):
@@ -300,24 +302,38 @@ def track_plot(df_tb_plt, **kwargs):
 #function to plot tracks
 def track_plot(df_tb_plt, **kwargs):
     
-    global pivot
+    global pivot, shift
     
     track_color = 'red'
     n_tracks = 1
     title = 'Track plots'
     path = 'chart.html'
+    marker_size = 2
+    line_size = 2
     
     if kwargs.get('track_color'):
         track_color = kwargs.get('track_color')
     
     if kwargs.get('n_tracks'):
         n_tracks = kwargs.get('n_tracks')
+        if n_tracks > df_tb_plt.shape[0]:
+            n_tracks = abs(df_tb_plt.shape[0])
+            wrn_msg = ('The number of tracks to plot is greater than the number of tracks in '
+                       'the dataframe.\nn_tracks will be: ' +  str(n_tracks) + 
+                       ' (the number of tracks in the dataset)')
+            warnings.warn(wrn_msg, RuntimeWarning, stacklevel=2)
     
     if kwargs.get('pivot'):
         pivot = kwargs.get('pivot')
     
     if kwargs.get('title'):
         title = kwargs.get('title')
+        
+    if kwargs.get('marker_size'):
+        marker_size = abs(kwargs.get('marker_size'))
+        
+    if kwargs.get('line_size'):
+        line_size = abs(kwargs.get('line_size'))
     
     dft_size = df_tb_plt.shape[1]
     len_xyz = int(dft_size/pivot)
@@ -329,9 +345,9 @@ def track_plot(df_tb_plt, **kwargs):
 
     # Generating indexes
     for i in range(len_xyz):
-        selected_columns_x[i] = int(i*pivot)
-        selected_columns_y[i] = int(i*pivot+1)
-        selected_columns_z[i] = int(i*pivot+2)
+        selected_columns_x[i] = int(i*pivot+shift)
+        selected_columns_y[i] = int(i*pivot+1+shift)
+        selected_columns_z[i] = int(i*pivot+2+shift)
 
     # list of data to plot
     data = []
@@ -350,12 +366,12 @@ def track_plot(df_tb_plt, **kwargs):
             # y = df_hits_y.iloc[i,:],
             # z = df_hits_z.iloc[i,:],
             marker = dict(
-                size = 1,
+                size = marker_size,
                 color = track_color,
             ),
             line = dict(
                 color = track_color,
-                width = 1
+                width = line_size
             )
         )
         # append the track[i] in the list for plotting
@@ -391,9 +407,9 @@ def track_plot(df_tb_plt, **kwargs):
             ),
             camera = dict(
                 up = dict(
-                    x = 0,
-                    y = 0,
-                    z = 1
+                    x = 1,
+                    y = 1,
+                    z = -0.5
                 ),
                 eye = dict(
                     x = -1.7428,
@@ -401,7 +417,7 @@ def track_plot(df_tb_plt, **kwargs):
                     z = 0.7100,
                 )
             ),
-            aspectratio = dict( x = 1, y = 1, z = 0.7),
+            aspectratio = dict( x = 1, y = 1, z = 1),
             aspectmode = 'manual'
         ),
     )
@@ -418,6 +434,156 @@ def track_plot(df_tb_plt, **kwargs):
         path = kwargs.get('path')
         fig.write_html(path, auto_open=True)  
         #fig.show(renderer='html')
+    else:
+        iplot(fig)
+        
+
+        
+#function to plot more than one dataframes
+
+def track_plot_list(list_of_df = [], **kwargs):
+    
+    global pivot, shift
+    
+    n_tracks = 1
+    title = 'Track plots'
+    path = 'chart.html'
+    opacity = 0.5
+    marker_size = 3
+    line_size = 3
+    len_list_df = len(list_of_df)
+    list_of_colors = ['red','blue', 'green', 'magenta', 'chocolate',
+                      'teal', 'indianred', 'yellow', 'orange', 'silver']
+    
+    assert (len_list_df <= len(list_of_colors)), 'The list must contain less than 10 dataframes.'
+    
+    if kwargs.get('n_tracks'):
+        n_tracks = kwargs.get('n_tracks')
+        if n_tracks > list_of_df[0].shape[0]:
+            n_tracks = abs(list_of_df[0].shape[0])
+            wrn_msg = ('The number of tracks to plot is greater than the number of tracks in '
+                       'the dataframe.\nn_tracks will be: ' +  str(n_tracks) + 
+                       ' (the number of tracks in the dataset)')
+            warnings.warn(wrn_msg, RuntimeWarning, stacklevel=2)
+                
+    if kwargs.get('pivot'):
+        pivot = kwargs.get('pivot')
+    
+    if kwargs.get('title'):
+        title = kwargs.get('title')
+        
+    if kwargs.get('opacity'):
+        opacity = kwargs.get('opacity')
+        if opacity > 1.0:
+            opacity = 1.0
+            wrn_msg = ('The opacity value is greater than 1.0\n'
+                       'The opacity value is will be set with 1.0 value.')
+            warnings.warn(wrn_msg, RuntimeWarning, stacklevel=2)
+    
+    if kwargs.get('marker_size'):
+        marker_size = abs(kwargs.get('marker_size'))
+        
+    if kwargs.get('line_size'):
+        line_size = abs(kwargs.get('line_size'))
+        
+    
+    
+    dft_size = int(list_of_df[0].shape[1])
+    len_xyz = int(dft_size/pivot)
+    
+
+    # Initializing lists of indexes
+    selected_columns_x = np.zeros(len_xyz)
+    selected_columns_y = np.zeros(len_xyz)
+    selected_columns_z = np.zeros(len_xyz)
+
+    # Generating indexes
+    for i in range(len_xyz):
+        selected_columns_x[i] = int(i*pivot+shift)
+        selected_columns_y[i] = int(i*pivot+1+shift)
+        selected_columns_z[i] = int(i*pivot+2+shift)
+
+    # list of data to plot
+    data = []
+    track = [None] * n_tracks
+    
+    for i in range(len_list_df):
+        try:
+            df_name = str(list_of_df[i].name)
+        except:
+            df_name = 'track[' + str(i) + ']'
+            warnings.warn('For a better visualization, set the name of dataframe to plot:'
+                          '\nE.g.: df.name = \'track original\'', 
+                          RuntimeWarning, stacklevel=2)
+        
+        for j in range(n_tracks):
+            track[j] = go.Scatter3d(
+                # Removing null values (zeroes) in the plot
+                x = list_of_df[i].replace(0.0, np.nan).iloc[j,selected_columns_x],
+                y = list_of_df[i].replace(0.0, np.nan).iloc[j,selected_columns_y],
+                z = list_of_df[i].replace(0.0, np.nan).iloc[j,selected_columns_z],
+                name = df_name + ' ' + str(j),
+                opacity = opacity,
+                marker = dict(
+                    size = marker_size,
+                    opacity = opacity,
+                    color = list_of_colors[i],
+                ),
+                line = dict(
+                    color = list_of_colors[i],
+                    width = line_size
+                )
+            )
+            # append the track[i] in the list for plotting
+            data.append(track[j])
+    layout = dict(
+        #width    = 900,
+        #height   = 750,
+        autosize = True,
+        title    = title,
+        scene = dict(
+            xaxis = dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           ='x (mm)'
+            ),
+            yaxis=dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           = 'y (mm)'
+            ),
+            zaxis=dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           = 'z (mm)'
+            ),
+             camera = dict(
+                up = dict(
+                    x = 1,
+                    y = 1,
+                    z = -0.5
+                ),
+                eye = dict(
+                    x = -1.7428,
+                    y = 1.0707,
+                    z = 0.7100,
+                )
+            ),
+            aspectratio = dict( x = 1, y = 1, z = 1),
+            aspectmode = 'manual'
+        ),
+    )
+    fig =  go.Figure(data = data, layout = layout)
+    init_notebook_mode(connected=True)
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+        fig.write_html(path, auto_open=True)  
     else:
         iplot(fig)
         
