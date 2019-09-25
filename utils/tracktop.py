@@ -3,20 +3,32 @@ from scipy import special
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import numexpr as ne
 
 import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 from transformation import *
 import pandas as pd
-import warnings
+import warnings, sys, os, fnmatch
 
+from trackml.dataset import load_event
+from trackml.dataset import load_dataset
+from trackml.randomize import shuffle_hits
+from trackml.score import score_event
+
+#parameters for error
 default_err = 0.03
 default_err_fad = 0.174
 default_len_err = 500
 default_center = 1
+
+#parameters for tracks, particles and hits
 pivot = 8
 shift = 1
-
+particle_info = 9
+ratio_discard_hit = 20
+amount_of_hits = 20
+n_columns_track = pivot * amount_of_hits + particle_info 
 
 def scale_range(input, min, max):
     input += -(np.min(input))
@@ -57,36 +69,6 @@ def err_faddeeva(position, err=default_err_fad, len_err=default_len_err):
     return value_err
 
 
-# Auxiliary functions to sort hits in track
-def xyz_swap(df_tb_swap, index_xyz, i, j):
-    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
-    df_tb_swap.iloc[3 * i], df_tb_swap.iloc[3 * j] = (
-        df_tb_swap.iloc[3 * j],
-        df_tb_swap.iloc[3 * i],
-    )
-    df_tb_swap.iloc[3 * i + 1], df_tb_swap.iloc[3 * j + 1] = (
-        df_tb_swap.iloc[3 * j + 1],
-        df_tb_swap.iloc[3 * i + 1],
-    )
-    df_tb_swap.iloc[3 * i + 2], df_tb_swap.iloc[3 * j + 2] = (
-        df_tb_swap.iloc[3 * j + 2],
-        df_tb_swap.iloc[3 * i + 2],
-    )
-
-
-def xyz_bsort(df_to_be_sorted):
-    index_xyz = []
-    df_n_col = df_to_be_sorted.shape[0] // 3
-    for aux in range(0, df_n_col):
-        x = df_to_be_sorted.iloc[3 * aux + 0]
-        y = df_to_be_sorted.iloc[3 * aux + 1]
-        z = df_to_be_sorted.iloc[3 * aux + 2]
-        index_xyz.append(x ** 2 + y ** 2 + z ** 2)
-    for i in range(1, len(index_xyz)):
-        for j in range(0, len(index_xyz) - i):
-            if index_xyz[j] > index_xyz[j + 1]:
-                xyz_swap(df_to_be_sorted, index_xyz, j, j + 1)
-
 # fmt: on
 # Flatten hits, pad the line to make up the original length,
 # add back the index, vertex, momentum in the front
@@ -114,27 +96,67 @@ def make_random_track(selected_hits, total_hits):
 
 # fmt:off
 
-#Previous version of track sort working with x, y, z
-'''
-def xyz_swap(df_tb_swap,index_xyz,i,j):
-    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
-    df_tb_swap.iloc[3*i]  , df_tb_swap.iloc[3*j]   = df_tb_swap.iloc[3*j],   df_tb_swap.iloc[3*i]
-    df_tb_swap.iloc[3*i+1], df_tb_swap.iloc[3*j+1] = df_tb_swap.iloc[3*j+1], df_tb_swap.iloc[3*i+1]
-    df_tb_swap.iloc[3*i+2], df_tb_swap.iloc[3*j+2] = df_tb_swap.iloc[3*j+2], df_tb_swap.iloc[3*i+2]
+def convert_track_xyz_to_rhoetaphi(df_in):
 
-def xyz_bsort(df_to_be_sorted):
-    index_xyz = []
-    df_n_col  = df_to_be_sorted.shape[0]//3
-    for aux in range(0,df_n_col):
-        x = df_to_be_sorted.iloc[3*aux+0]
-        y = df_to_be_sorted.iloc[3*aux+1]
-        z = df_to_be_sorted.iloc[3*aux+2]
-        index_xyz.append(x**2 + y**2 + z**2)
-    for i in range(1,len(index_xyz)):
-        for j in range(0,len(index_xyz)-i):
-            if index_xyz[j]>index_xyz[j+1]:
-                xyz_swap(df_to_be_sorted,index_xyz,j,j+1)
-'''
+    len_xyz = df_in.shape[0] // pivot
+
+    for i in range(len_xyz):
+        pivot_tmp = i * pivot
+        x = df_in.iloc[pivot_tmp + 0 + shift]
+        y = df_in.iloc[pivot_tmp + 1 + shift]
+        z = df_in.iloc[pivot_tmp + 2 + shift]
+        if (x != 0 and y != 0 and z != 0):
+            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+            df_in.iloc[pivot_tmp + 0  + shift] = rho
+            df_in.iloc[pivot_tmp + 1  + shift] = eta
+            df_in.iloc[pivot_tmp + 2  + shift] = phi
+            
+
+def convert_track_rhoetaphi_to_xyz(df_in, df_out):
+
+    len_xyz = df_in.shape[0] // pivot
+
+    for i in range(len_xyz):
+        pivot_tmp = i * pivot
+        rho = df_in.iloc[pivot_tmp + 0 + shift]
+        eta = df_in.iloc[pivot_tmp + 1 + shift]
+        phi = df_in.iloc[pivot_tmp + 2 + shift]
+        if (rho != 0 and eta != 0 and phi != 0):
+            x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+            df_out.iloc[pivot_tmp + 0 + shift] = x
+            df_out.iloc[pivot_tmp + 1 + shift] = y
+            df_out.iloc[pivot_tmp + 2 + shift] = z
+
+
+def convert_track_etaphi_err(df_in, err_func = err_normal, **kwargs):
+    err = default_err
+
+    if kwargs.get('err'):
+        err = kwargs.get('err')
+
+    len_xyz = df_in.shape[0] // pivot
+
+    for i in range(len_xyz):
+        pivot_tmp = i * pivot
+        x = df_in.iloc[pivot_tmp + 0 + shift]
+        y = df_in.iloc[pivot_tmp + 1 + shift]
+        z = df_in.iloc[pivot_tmp + 2 + shift]
+        if (x != 0 and y != 0 and z != 0):
+            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+            eta = err_func(eta, err)
+            phi = err_func(phi, err)
+
+            x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+
+            df_in.iloc[pivot_tmp + 0 + shift] = x
+            df_in.iloc[pivot_tmp + 1 + shift] = y
+            df_in.iloc[pivot_tmp + 2 + shift] = z   
+            
+            
+            
+def geo_dist(x,y,z):
+    return ne.evaluate('sqrt(x**2 + y**2 + z**2)')
+
 # SWAP function to work with bubble sort
 def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
     pivot_i = pivot * i
@@ -143,160 +165,171 @@ def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
     index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
     #swapping tracks array
     for aux in range(pivot):
-        df_tb_swap.iloc[pivot_i+aux],df_tb_swap.iloc[pivot_j+aux]=df_tb_swap.iloc[pivot_j+aux],df_tb_swap.iloc[pivot_i+aux]
+        df_tb_swap.iloc[pivot_i+aux], df_tb_swap.iloc[pivot_j+aux] = df_tb_swap.iloc[pivot_j+aux], df_tb_swap.iloc[pivot_i+aux]
 
-#function to sort a line of a track dataset divided by hits with 6 elements
+#function to sort a line of a track dataset divided by hits with 8 elements
 def xyz_bsort(df_to_be_sorted, **kwargs):
-    global pivot
+    global pivot 
+    global shift
+
     if kwargs.get('pivot'):
         pivot = kwargs.get('pivot')
 
-    #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
 
     index_xyz = []
-    df_n_col  = df_to_be_sorted.shape[0]//pivot
+    df_n_col  = df_to_be_sorted.shape[0] // pivot
+
+
     for aux in range(0,df_n_col):
         pivot_tmp = pivot * aux
-        x = df_to_be_sorted.iloc[pivot_tmp + 0]
-        y = df_to_be_sorted.iloc[pivot_tmp + 1]
-        z = df_to_be_sorted.iloc[pivot_tmp + 2]
-        index_xyz.append(x ** 2 + y ** 2 + z ** 2)
-    for i in range(1,len(index_xyz)):
+        x = df_to_be_sorted.iloc[pivot_tmp + 0 + shift]
+        y = df_to_be_sorted.iloc[pivot_tmp + 1 + shift]
+        z = df_to_be_sorted.iloc[pivot_tmp + 2 + shift]
+        index_xyz.append(geo_dist(x, y, z))
+    for i in range(1, len(index_xyz)):
         for j in range(0, len(index_xyz) - i):
             if index_xyz[j] > index_xyz[j + 1]:
-                xyz_swap(df_to_be_sorted, index_xyz, j, j+1, pivot)
-
-    #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
+                xyz_swap(df_to_be_sorted, index_xyz, j, j + 1, pivot)
 
 
-
-#function to plot tracks
-
-'''
-def track_plot(df_tb_plt, **kwargs):
+def create_input(dirParam,fileParam, **kwargs):
+    #9 columns for particle
+    #7 columns for hit
+    #one column for cell value (energy deposited)
+    #9+20*8 = 169
+    hits, cells, particles, truth = load_event(os.path.join(dirParam,fileParam))
 
     global pivot
-
-    track_color = 'red'
-    n_tracks = 1
-    title = 'Track plots'
-
-    path = 'chart.html'
+    global particle_info
+    global ratio_discard_hit
+    global n_columns_track
+    global amount_of_hits
     
-
-    if kwargs.get('track_color'):
-        track_color = kwargs.get('track_color')
-
+    n_tracks = particles.shape[0]
+    path = fileParam + '_tracks.csv'
+    sort = True
+    
     if kwargs.get('n_tracks'):
         n_tracks = kwargs.get('n_tracks')
 
-    if kwargs.get('pivot'):
-        pivot = kwargs.get('pivot')
-
-    if kwargs.get('title'):
-        title = kwargs.get('title')
-
-    dft_size = df_tb_plt.shape[1]
-    len_xyz = int(dft_size/pivot)
-
-    # Initializing lists of indexes
-    selected_columns_x = np.zeros(len_xyz)
-    selected_columns_y = np.zeros(len_xyz)
-    selected_columns_z = np.zeros(len_xyz)
-
-    # Generating indexes
-    for i in range(len_xyz):
-        selected_columns_x[i] = int(i*pivot)
-        selected_columns_y[i] = int(i*pivot+1)
-        selected_columns_z[i] = int(i*pivot+2)
-
-    # list of data to plot
-    data = []
-    track = [None] * n_tracks
-
-
-    for i in range(n_tracks):
-        track[i] = go.Scatter3d(
-            # Removing null values (zeroes) in the plot
-            x = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_x],
-            y = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_y],
-            z = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_z],
-            # x,y,z data with null values (zeroes)
-            #
-            # x = df_hits_x.iloc[i,:],
-            # y = df_hits_y.iloc[i,:],
-            # z = df_hits_z.iloc[i,:],
-            marker = dict(
-                size = 1,
-                color = track_color,
-            ),
-            line = dict(
-                color = track_color,
-                width = 1
-            )
-        )
-        # append the track[i] in the list for plotting
-        data.append(track[i])
-
-
-    layout = dict(
-        width    = 900,
-        height   = 750,
-        autosize = False,
-        title    = title,
-        scene = dict(
-            xaxis = dict(
-                gridcolor       = 'rgb(255, 255, 255)',
-                zerolinecolor   = 'rgb(255, 255, 255)',
-                showbackground  = True,
-                backgroundcolor = 'rgb(230, 230,230)',
-                title           ='x (mm)'
-            ),
-            yaxis=dict(
-                gridcolor       = 'rgb(255, 255, 255)',
-                zerolinecolor   = 'rgb(255, 255, 255)',
-                showbackground  = True,
-                backgroundcolor = 'rgb(230, 230,230)',
-                title           = 'y (mm)'
-            ),
-            zaxis=dict(
-                gridcolor       = 'rgb(255, 255, 255)',
-                zerolinecolor   = 'rgb(255, 255, 255)',
-                showbackground  = True,
-                backgroundcolor = 'rgb(230, 230,230)',
-                title           = 'z (mm)'
-            ),
-            camera = dict(
-                up = dict(
-                    x = 0,
-                    y = 0,
-                    z = 1
-                ),
-                eye = dict(
-                    x = -1.7428,
-                    y = 1.0707,
-                    z = 0.7100,
-                )
-            ),
-            aspectratio = dict( x = 1, y = 1, z = 0.7),
-            aspectmode = 'manual'
-        ),
-    )
-
-    fig = dict(data = data, layout = layout)
-
-    init_notebook_mode(connected=True)
-
-    
-    
     if kwargs.get('path'):
         path = kwargs.get('path')
-        fig.write_html(path, auto_open=True)        
-    else:
-        iplot(fig)
-'''      
         
-#NEW FUNCTION PLOT
+    if kwargs.get('sort'):
+        sort = kwargs.get('sort')
+
+    df_input_nn = pd.DataFrame()
+    row_final_matrix = np.zeros((1,1))
+    total_discarded_hits = 0
+    track_count = 0
+
+    for index, row in particles.iloc[0:n_tracks,:].iterrows():
+        dataP=row.values.flatten()
+        #particle information 9 columns
+        par = np.reshape(dataP,(1,9))
+        #obtain particle track
+        truth_0 = truth[truth.particle_id == row['particle_id']]
+        prior_position = np.zeros(3)
+        row_all_hits = par
+        discarded_hit = 0
+        #loop all hits in track
+        for indexT, rowT in truth_0.iloc[:,:].iterrows():
+            #obtain geometric distance, between hit and previous hit
+            if ((prior_position[0] !=0) & (prior_position[1] !=0) & 
+                (prior_position[2] !=0)):
+                geo_dist_hit = geo_dist((rowT['tx'] - prior_position[0]) ** 2,
+                                        (rowT['ty'] - prior_position[1]) ** 2,
+                                        (rowT['tz'] - prior_position[2]) ** 2)
+            else:
+                geo_dist_hit = 100
+            # if geometric distance is below 20 mm discard hit
+            if (geo_dist_hit > ratio_discard_hit):
+                #truth information 9 columns
+                data = rowT.values.flatten()
+                hit = np.reshape(data,(1,9))
+                hit_0 = hits[hits.hit_id == rowT['hit_id']]
+                cells_0 = cells[cells.hit_id == rowT['hit_id']]
+                sum_cells_aux = cells_0.iloc[:,3:4].sum()
+                data_cells = sum_cells_aux.values.flatten()
+                sum_cells = np.reshape(data_cells,(1,1))
+                row_final = np.concatenate((hit_0.iloc[:,0:8], sum_cells),
+                                           axis=1)
+                #create row with particle and all hits
+                row_all_hits = np.concatenate((row_all_hits,row_final),axis=1)
+                prior_position[0] = rowT['tx']
+                prior_position[1] = rowT['ty']
+                prior_position[2] = rowT['tz']
+            else:
+                discarded_hit += 1
+        total_discarded_hits += discarded_hit
+
+        #complete empty hits in track with zeros
+        aux_0 = np.zeros(n_columns_track - row_all_hits.shape[1])
+        data_0 = aux_0.flatten()
+        complete_0 = np.reshape(data_0,
+                                (1,(n_columns_track - row_all_hits.shape[1])))
+
+        #create one line with complete row
+        row_all_hits_line = np.concatenate((row_all_hits,complete_0),axis=1)
+        if ((row_final_matrix.shape[0] == 1) & 
+            (row_final_matrix.shape[1] == 1)):
+            row_final_matrix = row_all_hits_line
+        else:
+            row_final_matrix = np.concatenate((row_final_matrix, 
+                                              row_all_hits_line),axis=0)
+
+        track_count += 1
+
+        # Showing the status of file creation
+        if (track_count % 100 == 0):
+            print (round(track_count / n_tracks * 100, 1), 
+                   '% of ', n_tracks, " tracks.")
+
+    df_input_nn = pd.DataFrame(row_final_matrix)
+
+    # Replacing 0.0 -> infinite representation
+    # It's a trick solution to keep zeros (no hit representation) 
+    # in the right side of the track
+    df_input_nn_sort = df_input_nn.replace(0.0, np.PINF).copy()
+
+    # Sorting the tracks of the dataframe
+    
+    if sort == True:
+        for i in range(n_tracks):
+            xyz_bsort(df_input_nn_sort.iloc[i, particle_info:])
+
+    # Creating a list with particle info
+    track_header = ['particle_id', 'vx', 'vy', 'vz', 
+                    'px', 'py', 'pz', 'q', 'n_hits']
+
+    # Adding a header of each hit in a track_header list
+    for i in range(amount_of_hits):
+        track_header.append('hit_id_' + str(i))
+        track_header.append('x_' + str(i))
+        track_header.append('y_' + str(i))
+        track_header.append('z_' + str(i))
+        track_header.append('volume_id_' + str(i))
+        track_header.append('layer_id_' + str(i))
+        track_header.append('module_id_' + str(i))
+        track_header.append('value_' + str(i))
+
+    # Replacing infinite representation -> 0.0
+    df_input_nn_sort = df_input_nn_sort.replace(np.PINF,0.0).copy()
+
+    # Creating a csv from dataframe
+    index_df = index
+    df_input_nn_sort.to_csv(path, index = False, header = track_header)
+
+    print('Total_discarded_hits: ', total_discarded_hits)
+    print('Shape of dataset: ', df_input_nn.shape)
+    print('Sorted: ',  sort)
+    print('Dataset saved at: ',  path)
+    
+##########################################
+####                                  ####                      
+####   FUNCTIONS FOR VISUALIZATION    ####
+####                                  ####
+##########################################
 
 
 #function to plot tracks
@@ -345,9 +378,9 @@ def track_plot(df_tb_plt, **kwargs):
 
     # Generating indexes
     for i in range(len_xyz):
-        selected_columns_x[i] = int(i*pivot+shift)
-        selected_columns_y[i] = int(i*pivot+1+shift)
-        selected_columns_z[i] = int(i*pivot+2+shift)
+        selected_columns_x[i] = int(i * pivot + 0 + shift)
+        selected_columns_y[i] = int(i * pivot + 1 + shift)
+        selected_columns_z[i] = int(i * pivot + 2 + shift)
 
     # list of data to plot
     data = []
@@ -499,9 +532,9 @@ def track_plot_list(list_of_df = [], **kwargs):
 
     # Generating indexes
     for i in range(len_xyz):
-        selected_columns_x[i] = int(i*pivot+shift)
-        selected_columns_y[i] = int(i*pivot+1+shift)
-        selected_columns_z[i] = int(i*pivot+2+shift)
+        selected_columns_x[i] = int(i * pivot + 0 + shift)
+        selected_columns_y[i] = int(i * pivot + 1 + shift)
+        selected_columns_z[i] = int(i * pivot + 2 + shift)
 
     # list of data to plot
     data = []
@@ -519,9 +552,9 @@ def track_plot_list(list_of_df = [], **kwargs):
         for j in range(n_tracks):
             track[j] = go.Scatter3d(
                 # Removing null values (zeroes) in the plot
-                x = list_of_df[i].replace(0.0, np.nan).iloc[j,selected_columns_x],
-                y = list_of_df[i].replace(0.0, np.nan).iloc[j,selected_columns_y],
-                z = list_of_df[i].replace(0.0, np.nan).iloc[j,selected_columns_z],
+                x = list_of_df[i].replace(0.0, np.nan).iloc[j, selected_columns_x],
+                y = list_of_df[i].replace(0.0, np.nan).iloc[j, selected_columns_y],
+                z = list_of_df[i].replace(0.0, np.nan).iloc[j, selected_columns_z],
                 name = df_name + ' ' + str(j),
                 opacity = opacity,
                 marker = dict(
@@ -697,63 +730,223 @@ def track_plot_id(df_tb_plt, **kwargs):
     
     
 
-def convert_track_xyz_to_rhoetaphi(df_in):
 
-    len_xyz = df_in.shape[0] // pivot
-
-    for i in range(len_xyz):
-        pivot_tmp = i * pivot
-        x = df_in.iloc[pivot_tmp]
-        y = df_in.iloc[pivot_tmp + 1]
-        z = df_in.iloc[pivot_tmp + 2]
-        if (x != 0 and y != 0 and z != 0):
-            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
-            df_in.iloc[pivot_tmp] = rho
-            df_in.iloc[pivot_tmp + 1] = eta
-            df_in.iloc[pivot_tmp + 2] = phi
-            
-            
-            
-            
-
-
-def convert_track_rhoetaphi_to_xyz(df_in, df_out):
-
-    len_xyz = df_in.shape[0] // pivot
-
-    for i in range(len_xyz):
-        pivot_tmp = i * pivot
-        rho = df_in.iloc[pivot_tmp]
-        eta = df_in.iloc[pivot_tmp + 1]
-        phi = df_in.iloc[pivot_tmp + 2]
-        if (rho != 0 and eta != 0 and phi != 0):
-            x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
-            df_out.iloc[pivot_tmp] = x
-            df_out.iloc[pivot_tmp + 1] = y
-            df_out.iloc[pivot_tmp + 2] = z
-
-
-def convert_track_etaphi_err(df_in, err_func = err_normal, **kwargs):
-    err = default_err
-
-    if kwargs.get('err'):
-        err = kwargs.get('err')
-
-    len_xyz = df_in.shape[0] // pivot
-
-    for i in range(len_xyz):
-        pivot_tmp = i * pivot
-        x = df_in.iloc[pivot_tmp]
-        y = df_in.iloc[pivot_tmp + 1]
-        z = df_in.iloc[pivot_tmp + 2]
-        if (x != 0 and y != 0 and z != 0):
-            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
-            eta = err_func(eta, err)
-            phi = err_func(phi, err)
-
-            x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
-
-            df_in.iloc[pivot_tmp] = x
-            df_in.iloc[pivot_tmp + 1] = y
-            df_in.iloc[pivot_tmp + 2] = z
 # fmt:on
+
+#DEPRECATED ZONE
+'''
+# Auxiliary functions to sort hits in track
+def xyz_swap(df_tb_swap, index_xyz, i, j):
+    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
+    df_tb_swap.iloc[3 * i], df_tb_swap.iloc[3 * j] = (
+        df_tb_swap.iloc[3 * j],
+        df_tb_swap.iloc[3 * i],
+    )
+    df_tb_swap.iloc[3 * i + 1], df_tb_swap.iloc[3 * j + 1] = (
+        df_tb_swap.iloc[3 * j + 1],
+        df_tb_swap.iloc[3 * i + 1],
+    )
+    df_tb_swap.iloc[3 * i + 2], df_tb_swap.iloc[3 * j + 2] = (
+        df_tb_swap.iloc[3 * j + 2],
+        df_tb_swap.iloc[3 * i + 2],
+    )
+
+
+def xyz_bsort(df_to_be_sorted):
+    index_xyz = []
+    df_n_col = df_to_be_sorted.shape[0] // 3
+    for aux in range(0, df_n_col):
+        x = df_to_be_sorted.iloc[3 * aux + 0]
+        y = df_to_be_sorted.iloc[3 * aux + 1]
+        z = df_to_be_sorted.iloc[3 * aux + 2]
+        index_xyz.append(x ** 2 + y ** 2 + z ** 2)
+    for i in range(1, len(index_xyz)):
+        for j in range(0, len(index_xyz) - i):
+            if index_xyz[j] > index_xyz[j + 1]:
+                xyz_swap(df_to_be_sorted, index_xyz, j, j + 1)
+
+'''
+#function to plot tracks
+
+'''
+def track_plot(df_tb_plt, **kwargs):
+
+    global pivot
+
+    track_color = 'red'
+    n_tracks = 1
+    title = 'Track plots'
+
+    path = 'chart.html'
+    
+
+    if kwargs.get('track_color'):
+        track_color = kwargs.get('track_color')
+
+    if kwargs.get('n_tracks'):
+        n_tracks = kwargs.get('n_tracks')
+
+    if kwargs.get('pivot'):
+        pivot = kwargs.get('pivot')
+
+    if kwargs.get('title'):
+        title = kwargs.get('title')
+
+    dft_size = df_tb_plt.shape[1]
+    len_xyz = int(dft_size/pivot)
+
+    # Initializing lists of indexes
+    selected_columns_x = np.zeros(len_xyz)
+    selected_columns_y = np.zeros(len_xyz)
+    selected_columns_z = np.zeros(len_xyz)
+
+    # Generating indexes
+    for i in range(len_xyz):
+        selected_columns_x[i] = int(i*pivot)
+        selected_columns_y[i] = int(i*pivot+1)
+        selected_columns_z[i] = int(i*pivot+2)
+
+    # list of data to plot
+    data = []
+    track = [None] * n_tracks
+
+
+    for i in range(n_tracks):
+        track[i] = go.Scatter3d(
+            # Removing null values (zeroes) in the plot
+            x = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_x],
+            y = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_y],
+            z = df_tb_plt.replace(0.0, np.nan).iloc[i,selected_columns_z],
+            # x,y,z data with null values (zeroes)
+            #
+            # x = df_hits_x.iloc[i,:],
+            # y = df_hits_y.iloc[i,:],
+            # z = df_hits_z.iloc[i,:],
+            marker = dict(
+                size = 1,
+                color = track_color,
+            ),
+            line = dict(
+                color = track_color,
+                width = 1
+            )
+        )
+        # append the track[i] in the list for plotting
+        data.append(track[i])
+
+
+    layout = dict(
+        width    = 900,
+        height   = 750,
+        autosize = False,
+        title    = title,
+        scene = dict(
+            xaxis = dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           ='x (mm)'
+            ),
+            yaxis=dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           = 'y (mm)'
+            ),
+            zaxis=dict(
+                gridcolor       = 'rgb(255, 255, 255)',
+                zerolinecolor   = 'rgb(255, 255, 255)',
+                showbackground  = True,
+                backgroundcolor = 'rgb(230, 230,230)',
+                title           = 'z (mm)'
+            ),
+            camera = dict(
+                up = dict(
+                    x = 0,
+                    y = 0,
+                    z = 1
+                ),
+                eye = dict(
+                    x = -1.7428,
+                    y = 1.0707,
+                    z = 0.7100,
+                )
+            ),
+            aspectratio = dict( x = 1, y = 1, z = 0.7),
+            aspectmode = 'manual'
+        ),
+    )
+
+    fig = dict(data = data, layout = layout)
+
+    init_notebook_mode(connected=True)
+
+    
+    
+    if kwargs.get('path'):
+        path = kwargs.get('path')
+        fig.write_html(path, auto_open=True)        
+    else:
+        iplot(fig)
+'''      
+
+#Previous version of track sort working with x, y, z
+'''
+def xyz_swap(df_tb_swap,index_xyz,i,j):
+    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
+    df_tb_swap.iloc[3*i]  , df_tb_swap.iloc[3*j]   = df_tb_swap.iloc[3*j],   df_tb_swap.iloc[3*i]
+    df_tb_swap.iloc[3*i+1], df_tb_swap.iloc[3*j+1] = df_tb_swap.iloc[3*j+1], df_tb_swap.iloc[3*i+1]
+    df_tb_swap.iloc[3*i+2], df_tb_swap.iloc[3*j+2] = df_tb_swap.iloc[3*j+2], df_tb_swap.iloc[3*i+2]
+
+def xyz_bsort(df_to_be_sorted):
+    index_xyz = []
+    df_n_col  = df_to_be_sorted.shape[0]//3
+    for aux in range(0,df_n_col):
+        x = df_to_be_sorted.iloc[3*aux+0]
+        y = df_to_be_sorted.iloc[3*aux+1]
+        z = df_to_be_sorted.iloc[3*aux+2]
+        index_xyz.append(x**2 + y**2 + z**2)
+    for i in range(1,len(index_xyz)):
+        for j in range(0,len(index_xyz)-i):
+            if index_xyz[j]>index_xyz[j+1]:
+                xyz_swap(df_to_be_sorted,index_xyz,j,j+1)
+
+# SWAP function to work with bubble sort
+def xyz_swap(df_tb_swap, index_xyz, i, j, pivot):
+    pivot_i = pivot * i
+    pivot_j = pivot * j
+    #swapping index array
+    index_xyz[i], index_xyz[j] = index_xyz[j], index_xyz[i]
+    #swapping tracks array
+    for aux in range(pivot):
+        df_tb_swap.iloc[pivot_i+aux],df_tb_swap.iloc[pivot_j+aux]=df_tb_swap.iloc[pivot_j+aux],df_tb_swap.iloc[pivot_i+aux]
+
+#function to sort a line of a track dataset divided by hits with 8 elements
+def xyz_bsort(df_to_be_sorted, **kwargs):
+    global pivot
+    global shift
+    
+    if kwargs.get('pivot'):
+        pivot = kwargs.get('pivot')
+
+    #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
+
+    index_xyz = []
+    df_n_col  = df_to_be_sorted.shape[0]//pivot
+    for aux in range(0,df_n_col):
+        pivot_tmp = pivot * aux
+        x = df_to_be_sorted.iloc[pivot_tmp + 0 + shift]
+        y = df_to_be_sorted.iloc[pivot_tmp + 1 + shift]
+        z = df_to_be_sorted.iloc[pivot_tmp + 2 + shift]
+        index_xyz.append(x ** 2 + y ** 2 + z ** 2)
+    for i in range(1,len(index_xyz)):
+        for j in range(0, len(index_xyz) - i):
+            if index_xyz[j] > index_xyz[j + 1]:
+                xyz_swap(df_to_be_sorted, index_xyz, j, j+1, pivot)
+
+    #df_to_be_sorted = df_to_be_sorted.replace(0.0, np.PINF)
+
+
+'''
