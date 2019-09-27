@@ -208,6 +208,7 @@ def create_input(dirParam,fileParam, **kwargs):
     n_tracks = particles.shape[0]
     path = fileParam + '_tracks.csv'
     sort = True
+    silent = False
     
     if kwargs.get('n_tracks'):
         n_tracks = kwargs.get('n_tracks')
@@ -217,12 +218,18 @@ def create_input(dirParam,fileParam, **kwargs):
         
     if kwargs.get('sort'):
         sort = kwargs.get('sort')
+        
+    if kwargs.get('silent'):
+        silent = kwargs.get('silent')
 
     df_input_nn = pd.DataFrame()
     row_final_matrix = np.zeros((1,1))
     total_discarded_hits = 0
     track_count = 0
 
+    if silent is False: print('Getting tracks...')
+
+    
     for index, row in particles.iloc[0:n_tracks,:].iterrows():
         dataP=row.values.flatten()
         #particle information 9 columns
@@ -237,9 +244,9 @@ def create_input(dirParam,fileParam, **kwargs):
             #obtain geometric distance, between hit and previous hit
             if ((prior_position[0] !=0) & (prior_position[1] !=0) & 
                 (prior_position[2] !=0)):
-                geo_dist_hit = geo_dist((rowT['tx'] - prior_position[0]) ** 2,
-                                        (rowT['ty'] - prior_position[1]) ** 2,
-                                        (rowT['tz'] - prior_position[2]) ** 2)
+                geo_dist_hit = geo_dist((rowT['tx'] - prior_position[0]),
+                                        (rowT['ty'] - prior_position[1]),
+                                        (rowT['tz'] - prior_position[2]))
             else:
                 geo_dist_hit = 100
             # if geometric distance is below 20 mm discard hit
@@ -281,7 +288,7 @@ def create_input(dirParam,fileParam, **kwargs):
         track_count += 1
 
         # Showing the status of file creation
-        if (track_count % 100 == 0):
+        if (track_count % (n_tracks // 10) == 0) and silent is False:
             print (round(track_count / n_tracks * 100, 1), 
                    '% of ', n_tracks, " tracks.")
 
@@ -293,10 +300,17 @@ def create_input(dirParam,fileParam, **kwargs):
     df_input_nn_sort = df_input_nn.replace(0.0, np.PINF).copy()
 
     # Sorting the tracks of the dataframe
-    
-    if sort == True:
+    track_count = 0
+        
+    if sort is True:
+        if silent is False: print('\nSorting tracks...')
         for i in range(n_tracks):
             xyz_bsort(df_input_nn_sort.iloc[i, particle_info:])
+            track_count += 1
+            if (track_count % (n_tracks // 10) == 0) and silent is False:
+                print (round(track_count / n_tracks * 100, 1), 
+                       '% of ', n_tracks, " tracks.")
+                
 
     # Creating a list with particle info
     track_header = ['particle_id', 'vx', 'vy', 'vz', 
@@ -320,10 +334,11 @@ def create_input(dirParam,fileParam, **kwargs):
     index_df = index
     df_input_nn_sort.to_csv(path, index = False, header = track_header)
 
-    print('Total_discarded_hits: ', total_discarded_hits)
-    print('Shape of dataset: ', df_input_nn.shape)
-    print('Sorted: ',  sort)
-    print('Dataset saved at: ',  path)
+    if silent is False:
+        print('\nTotal_discarded_hits: ', total_discarded_hits)
+        print('Shape of dataset: ', df_input_nn.shape)
+        print('Sorted: ',  sort)
+        print('Dataset saved at: ',  path)
     
 ##########################################
 ####                                  ####                      
