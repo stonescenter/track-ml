@@ -356,14 +356,15 @@ def create_input(dirParam,fileParam, **kwargs):
     #one column for cell value (energy deposited)
     #9+20*8 = 169
     hits, cells, particles, truth = load_event(os.path.join(dirParam,fileParam))
-
+     
+    # getting the standard parameters from tracktop lib
     global pivot
     global particle_info
     global ratio_discard_hit
     global n_columns_track
     global amount_of_hits
     
-    
+    #standard ranges for track_filter
     n_hits_range = [0, np.PINF]
     eta_range = [np.NINF,np.PINF]
     phi_range = [np.NINF,np.PINF]
@@ -371,14 +372,17 @@ def create_input(dirParam,fileParam, **kwargs):
     delta_phi_range = [np.NINF,np.PINF]
     pt_range = [np.NINF,np.PINF]
     
-    
+    # Getting the number of tracks from file
     n_tracks = particles.shape[0]
+    
     path = fileParam + '_tracks.csv'
-    output = path
     sort = True
     silent = False
     discarted_tracks = 0
 
+    
+    # Getting the parameters
+    # In a future implementation, we will no longer use kwargs
     if kwargs.get('ratio_discard_hit'):
         ratio_discard_hit = kwargs.get('ratio_discard_hit')
            
@@ -414,6 +418,7 @@ def create_input(dirParam,fileParam, **kwargs):
         
     if kwargs.get('output'):
         output = kwargs.get('output')
+        path = output
         
     if kwargs.get('sort'):
         sort = kwargs.get('sort')
@@ -492,13 +497,12 @@ def create_input(dirParam,fileParam, **kwargs):
         #x,y,z from first track
         n_hits_track = row_all_hits_line[0,8]
 
-        
+        # Run track filter
         bool_filter_etaphipt = track_filter(row_all_hits_line[0,particle_info:],
                                             n_hits_track, n_hits_range, px, py, 
                                             eta_range, phi_range, 
                                             delta_eta_range, delta_phi_range, pt_range)
-        print(bool_filter_etaphipt)
-
+        
         #if (bool_filter_etaphipt is True and n_hits_track != 0):
         if (bool_filter_etaphipt is True):
 
@@ -506,7 +510,7 @@ def create_input(dirParam,fileParam, **kwargs):
             if (sort is True):
                 np_xyz_bsort(row_all_hits_line[0,particle_info:])
 
-
+            # if is the first track of the file
             if ((row_final_matrix.shape[0] == 1) & 
                 (row_final_matrix.shape[1] == 1)):
                 row_final_matrix = row_all_hits_line
@@ -543,15 +547,14 @@ def create_input(dirParam,fileParam, **kwargs):
         track_header.append('value_' + str(i))
 
 
-    # Creating a csv from dataframe
-    # index_df = index
-    
+    # Showing a error message if the track_filter cut oll the hits
     assert (discarted_tracks != n_tracks), 'There are no tracks in the file with the parameters that were entered.'
     
     
     # Writing the dataframe in the csv file.
     df_input_nn.to_csv(path, index = False, header = track_header)
 
+    # showing the information of dataset and filtering
     if silent is False:
         print('\nTracks analised: ', n_tracks)
         print('Total discarded tracks: ', discarted_tracks)
