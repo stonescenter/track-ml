@@ -259,11 +259,29 @@ def f_range(value, float_range = [np.NINF,np.PINF]):
     return False
             
 
-def np_filter_etaphipt(np_in, px, py, eta_range, phi_range, pt_range):
-    # Function to filter if pt, eta or phi is out of range 
-    len_xyz = np_in.shape[0] // pivot
-    rho, eta, phi = 0, 0, 0
+def track_filter(np_in, n_hits_track, n_hits_range, px, py, 
+                       eta_range, phi_range, 
+                       delta_eta_range, delta_phi_range, pt_range):
     
+    # Function to filter if pt, eta, phi, delta_eta or 
+    # delta_phi is out of range. 
+    # This function also filters if the track has no hits.
+
+    rho, eta, phi, eta_total, phi_total = 0, 0, 0, 0, 0
+        
+    # if n_hits_track == 0., 
+    # this track has no hits.
+    # the function will return False and 
+    # the track will be discarted
+    if (n_hits_track == 0.): return False
+    
+    
+    # If  n_hits_track of n_hits_range, 
+    # this function will return False and 
+    # the track will be discarted
+    if f_range(n_hits_track, n_hits_range) is False: return False 
+      
+    # Calculating pt
     pt = ne.evaluate('sqrt(px*px + py*py)')
     
     # If  pt is out of range, 
@@ -271,26 +289,64 @@ def np_filter_etaphipt(np_in, px, py, eta_range, phi_range, pt_range):
     # the track will be discarted
     if f_range(pt, pt_range) is False: return False
 
-    for i in range(len_xyz):
-        pivot_tmp = i * pivot
+    for i in range(int(n_hits_track)):
+        # Calculating the pivot to access each 
+        # hit sequentially with each loop pass
+        pivot_tmp = i * pivot + shift
+        
         rho, eta, phi = 0,0,0
-        x = np_in[pivot_tmp + 0 + shift]
-        y = np_in[pivot_tmp + 1 + shift]
-        z = np_in[pivot_tmp + 2 + shift]
-        if (x != 0 and y != 0 and z != 0):
-            #generating the values of rho,eta,phi from x,y,z
-            rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
-            
-            # If any value of eta is out of range, 
-            # this function will return False and 
-            # the track will be discarted
-            if f_range(eta, eta_range) is False: return False
-            
-            # If any value of phi is out of range, 
-            # this function will return False and 
-            # the track will be discarted
-            if f_range(phi, phi_range) is False: return False
-            
+        
+        # Getting the values of x, y, z 
+        # from each hit of this track
+        x = np_in[pivot_tmp + 0]
+        y = np_in[pivot_tmp + 1]
+        z = np_in[pivot_tmp + 2]
+        
+        # generating the values of rho,eta,phi from x,y,z
+        rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+
+        # If any value of eta is out of range, 
+        # this function will return False and 
+        # the track will be discarted
+        if f_range(eta, eta_range) is False: return False
+
+        # If any value of phi is out of range, 
+        # this function will return False and 
+        # the track will be discarted
+        if f_range(phi, phi_range) is False: return False
+        
+        # We need at least 2 hits to calculate the difference 
+        # of eta. because of that we accumulated the first hit
+        if i == 0:
+            eta_prev = eta
+            phi_prev = phi
+        else:
+            # We need at least 2 hits to calculate the difference 
+            # of eta. because of that we accumulated the first hit
+            eta_total += abs(eta_prev - eta)
+            phi_total += abs(phi_prev - phi)
+
+            eta_prev = eta
+            phi_prev = phi
+     
+    # if this track has only 1 hit the difference in eta and phi is 0
+    if (n_hits_track == 1.):
+        eta_avg = 0.
+        phi_avg = 0.
+    else:
+        # if this track has only 1 hit the difference in eta and phi is 0
+        eta_avg = eta_total / (n_hits_track - 1)
+        phi_avg = phi_total / (n_hits_track - 1)
+    
+    # If  delta_phi_range is out of range, 
+    # this function will return False and 
+    # the track will be discarted
+    if f_range(phi_avg, delta_phi_range) is False: return False
+    
+    # If  delta_eta_range is out of range, 
+    # this function will return False and 
+    # the track will be discarted
+    if f_range(eta_avg, delta_eta_range) is False: return False
     return True
             
                 
@@ -307,29 +363,57 @@ def create_input(dirParam,fileParam, **kwargs):
     global n_columns_track
     global amount_of_hits
     
-    phi_range = [np.NINF,np.PINF]
+    
+    n_hits_range = [0, np.PINF]
     eta_range = [np.NINF,np.PINF]
+    phi_range = [np.NINF,np.PINF]
+    delta_eta_range = [np.NINF,np.PINF]
+    delta_phi_range = [np.NINF,np.PINF]
     pt_range = [np.NINF,np.PINF]
+    
     
     n_tracks = particles.shape[0]
     path = fileParam + '_tracks.csv'
+    output = path
     sort = True
     silent = False
+    discarted_tracks = 0
+
+    if kwargs.get('ratio_discard_hit'):
+        ratio_discard_hit = kwargs.get('ratio_discard_hit')
+           
+    if kwargs.get('n_hits_range'):
+        n_hits_range = kwargs.get('n_hits_range')
+        
+    if kwargs.get('eta_range'):
+        eta_range = kwargs.get('eta_range')
     
     if kwargs.get('phi_range'):
         phi_range = kwargs.get('phi_range')
-
-    if kwargs.get('eta_range'):
-        eta_range = kwargs.get('eta_range')
+    
+    if kwargs.get('delta_eta_range'):
+        delta_eta_range = kwargs.get('delta_eta_range')
+    
+    if kwargs.get('delta_phi_range'):
+        delta_phi_range = kwargs.get('delta_phi_range')
     
     if kwargs.get('pt_range'):
         pt_range = kwargs.get('pt_range')
     
     if kwargs.get('n_tracks'):
         n_tracks = kwargs.get('n_tracks')
+        if n_tracks > particles.shape[0]:
+            n_tracks = particles.shape[0]
+            wrn_msg = ('The number of tracks to plot is greater than the number of tracks in '
+                       'the file.\nn_tracks will be: ' +  str(n_tracks) + 
+                       ' (the number of tracks in the file)')
+            warnings.warn(wrn_msg, RuntimeWarning, stacklevel=2)
 
     if kwargs.get('path'):
         path = kwargs.get('path')
+        
+    if kwargs.get('output'):
+        output = kwargs.get('output')
         
     if kwargs.get('sort'):
         sort = kwargs.get('sort')
@@ -397,23 +481,28 @@ def create_input(dirParam,fileParam, **kwargs):
         #create one line with complete row
         #
         #
-        
         row_all_hits_line = np.concatenate((row_all_hits,complete_0),axis=1)
+        
+        # Removing hits from n_tracks_hits dataset
+        row_all_hits_line[0,8] -= discarded_hit
         
         px = row_all_hits_line[0,4]
         py = row_all_hits_line[0,5]
         
         #x,y,z from first track
-        n_hits_track = row_all_hits_line[0,9]
+        n_hits_track = row_all_hits_line[0,8]
 
         
-        bool_filter_etaphipt = np_filter_etaphipt(row_all_hits_line[0,particle_info:], 
-                                                  px, py, eta_range, phi_range, pt_range)
+        bool_filter_etaphipt = track_filter(row_all_hits_line[0,particle_info:],
+                                            n_hits_track, n_hits_range, px, py, 
+                                            eta_range, phi_range, 
+                                            delta_eta_range, delta_phi_range, pt_range)
+        print(bool_filter_etaphipt)
 
-        if (bool_filter_etaphipt is True and n_hits_track != 0):
-        #if (bool_filter_etaphipt is True):
+        #if (bool_filter_etaphipt is True and n_hits_track != 0):
+        if (bool_filter_etaphipt is True):
 
-
+            # Sorting the track
             if (sort is True):
                 np_xyz_bsort(row_all_hits_line[0,particle_info:])
 
@@ -424,6 +513,8 @@ def create_input(dirParam,fileParam, **kwargs):
             else:
                 row_final_matrix = np.concatenate((row_final_matrix, 
                                                   row_all_hits_line),axis=0)
+        else:
+            discarted_tracks += 1
 
         track_count += 1
         
@@ -432,27 +523,10 @@ def create_input(dirParam,fileParam, **kwargs):
             if (track_count % (n_tracks // 10) == 0) and silent is False:
                 print (round(track_count / n_tracks * 100, 1), 
                        '% of ', n_tracks, " tracks.")
-
+    
+    #writing the final matrix
     df_input_nn = pd.DataFrame(row_final_matrix)
 
-    # Replacing 0.0 -> infinite representation
-    # It's a trick solution to keep zeros (no hit representation) 
-    # in the right side of the track
-    df_input_nn_sort = df_input_nn.replace(0.0, np.PINF).copy()
-
-    # Sorting the tracks of the dataframe
-    track_count = 0
-    '''    
-    if sort is True:
-        if silent is False: print('\nSorting tracks...')
-        for i in range(n_tracks):
-            xyz_bsort(df_input_nn_sort.iloc[i, particle_info:])
-            track_count += 1
-            if (track_count % (n_tracks // 10) == 0) and silent is False:
-                print (round(track_count / n_tracks * 100, 1), 
-                       '% of ', n_tracks, " tracks.")
-                
-    '''
     # Creating a list with particle info
     track_header = ['particle_id', 'vx', 'vy', 'vz', 
                     'px', 'py', 'pz', 'q', 'n_hits']
@@ -468,19 +542,24 @@ def create_input(dirParam,fileParam, **kwargs):
         track_header.append('module_id_' + str(i))
         track_header.append('value_' + str(i))
 
-    # Replacing infinite representation -> 0.0
-    df_input_nn_sort = df_input_nn_sort.replace(np.PINF,0.0).copy()
 
     # Creating a csv from dataframe
-    index_df = index
-    df_input_nn_sort.to_csv(path, index = False, header = track_header)
+    # index_df = index
+    
+    assert (discarted_tracks != n_tracks), 'There are no tracks in the file with the parameters that were entered.'
+    
+    
+    # Writing the dataframe in the csv file.
+    df_input_nn.to_csv(path, index = False, header = track_header)
 
     if silent is False:
-        print('\nTotal_discarded_hits: ', total_discarded_hits)
+        print('\nTracks analised: ', n_tracks)
+        print('Total discarded tracks: ', discarted_tracks)
+        print('Total discarded hits: ', total_discarded_hits)
         print('Shape of dataset: ', df_input_nn.shape)
         print('Sorted: ',  sort)
         print('Dataset saved at: ',  path)
-    
+        
 ##########################################
 ####                                  ####                      
 ####   FUNCTIONS FOR VISUALIZATION    ####
@@ -883,3 +962,5 @@ def track_plot_id(df_tb_plt, **kwargs):
                n_tracks=n_tracks,
                title = title,
                pivot=pivot)
+    
+
