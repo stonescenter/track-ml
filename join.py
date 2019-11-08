@@ -10,6 +10,8 @@ tracks_final = pd.DataFrame()
 rangeBeginSTR = sys.argv[1]
 rangeEndSTR = sys.argv[2]
 dirout = sys.argv[3]
+dir = sys.argv[4]
+#/home/silvio/trainF
 
 rangeBegin = int(rangeBeginSTR)
 rangeEnd  = int(rangeEndSTR) +1
@@ -17,8 +19,8 @@ rangeEnd  = int(rangeEndSTR) +1
 print("dirout ", dirout, " rangeBegin ", rangeBegin, " rangeEnd ", rangeEnd )
 
 for i in range(rangeBegin, rangeEnd):
-    print("/home/silvio/train_"+str(i)+".csv")
-    tracks = pd.read_csv("/home/silvio/train_"+str(i)+".csv")
+    print(dir+"/"+str(i)+".csv")
+    tracks = pd.read_csv(dir+"/"+str(i)+".csv")
     tracks_final = pd.concat([tracks_final, tracks], ignore_index=True)
 
 tracks_final.to_csv(dirout, index = False)
