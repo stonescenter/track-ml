@@ -11,7 +11,7 @@ Neural Network trainning is managed by script: wf-trainning.py that expects the 
 Comand line exemplt to train the Neural Network:
 
 ```
-python wf-trainning.py tr.csv tr-aux.csv tr-aux.csv model_top04_1.h5 loss_top04_1.png
+python wf-trainning.py tr.csv tr-aux.csv tr-aux.csv model_top04_1.h5 loss_top04_1.png 1
 ```
 
 inferences can be done using script: inference.py that expects the following parameters:
