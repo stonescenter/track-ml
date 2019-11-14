@@ -381,7 +381,7 @@ if (NNmodel==3):
 
 #run training
 n_batch = 1
-n_epoch = 200 #2000 #1000 #20 #300 #00
+n_epoch = 10 #2000 #1000 #20 #300 #00
 
 #tensorboard = TensorBoard(log_dir="logs/{}".format(time()))
 tensorboard = TensorBoard(log_dir="/home/silvio/logs/{}")
