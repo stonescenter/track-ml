@@ -7,3 +7,5 @@ Neural Network trainning is managed by script: wf-trainning.py that expects the 
 * input_for_trainning 
 * modelF generated model  
 * lossF  generated loff graph
+
+python wf-trainning.py /home/silvio/all-Train.csv /home/silvio/Tr.csv /home/silvio/Tr.csv /home/silvio/input_files_for_track/model_top04_1.h5 /home/silvio/input_files_for_track/loss_top04_1.png
