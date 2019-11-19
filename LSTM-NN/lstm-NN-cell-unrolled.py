@@ -400,8 +400,8 @@ if (NNmodel==1):
     eval_model=model.evaluate([X_test, Xfeat_test], y_test, verbose=2)
 else:
     eval_model=model.evaluate(X_test, y_test, verbose=2)
-
-optfile="/home/silvio/input_files_for_track/opt_top04_1.png"
+#
+#optfile="/home/silvio/input_files_for_track/opt_top04_1.png"
 #plt.plot(history.history['mean_squared_error'])
 #plt.plot(history.history['mean_absolute_error'])
 #plt.plot(history.history['mean_absolute_percentage_error'])
