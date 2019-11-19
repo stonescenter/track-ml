@@ -66,11 +66,20 @@ NN  = int(sys.argv[1])
 file = sys.argv[2]
 h5file = sys.argv[3]
 
-if (NN == 1):
+print ("parameters for inference: ",NN,file,h5file)
+
+diraux, filename = os.path.split(h5file)
+
+print("Auxiliary directory: ", diraux)
+
+if (os.path.isdir(diraux) == False):
+    os.mkdir(diraux)
+
+#if (NN == 1):
     #trained_model_file="/home/silvio/input_files_for_track/model_top04_1.h5"
-    trained_model_file=h5file
-else:
-    trained_model_file="/home/silvio/input_files_for_track/model_top04_2.h5"
+trained_model_file=h5file
+#else:
+#    trained_model_file="/home/silvio/input_files_for_track/model_top04_2.h5"
 
 model = load_model(trained_model_file)
 #inputfile="/home/silvio/testInf"
@@ -103,7 +112,8 @@ XMLP= df1.iloc[:, [ 2,3,4,9,10,11,12,17,18,19,20,24]]
 #resorg= df1.iloc[:, [ 26,27,28]]
 #resorg= df1.iloc[:, [ 27,28,29]]
 resorg= df1.iloc[:, [ 32,33,34]]
-resorg.to_csv('/home/silvio/resorg', index = False)
+resorgfile=diraux+'/resorg'
+resorg.to_csv(resorgfile, index = False)
 
 
 print(NN)
@@ -150,8 +160,11 @@ print(df_all_hits)
 print("Predicted: ")
 print(df3dapp)
 
-df3dapp.to_csv('/home/silvio/Res3', index = False)
-df3d.to_csv('/home/silvio/beforemappingRes3', index = False)
+Res3file=diraux+'/Res3'
+beforemappingRes3file=diraux+'/beforemappingRes3'
+
+df3dapp.to_csv(Res3file, index = False)
+df3d.to_csv(beforemappingRes3file, index = False)
 
 dftemp = pd.DataFrame(index=range(len(df)),columns=range(12))
 dftemp[0]=resorg.iloc[:,[0]]
@@ -180,12 +193,12 @@ print ("average distance approximation" , dftemp[10].mean())
 dftemp22 = dftemp[ dftemp[10] == 0]
 print ("0 diff" , dftemp22.shape[0])
 
-outputfig="plot-original-predicted.png"
+outputfig=diraux+"/plot-original-predicted.png"
 sns_plot = sns.distplot(dftemp.iloc[:,9:10])
 sns_plot.set(xlabel='Average Distance in MM - original x predicted ', ylabel='Frequency')
 plt.savefig(outputfig)
 
-outputfig="plot-original-approximated.png"
+outputfig=diraux+"/plot-original-approximated.png"
 sns_plot2 = sns.distplot(dftemp.iloc[:,10:11])
 sns_plot2.set(xlabel='Average Distance in MM - original x approximated ', ylabel='Frequency')
 plt.savefig(outputfig)
