@@ -15,3 +15,15 @@ Some references:
 * http://inspirehep.net/record/1699890/files/10.1088_1742-6596_1085_4_042029.pdf
 * https://dl4physicalsciences.github.io/files/nips_dlps_2017_28.pdf
 * https://ep-news.web.cern.ch/content/connecting-dots-applying-deep-learning-techniques-hep
+
+# Meetings 
+
+* https://indico.cern.ch/event/835232/
+* https://indico.cern.ch/event/821868/
+* https://indico.cern.ch/event/790725/
+
+# More references:
+
+https://arxiv.org/abs/1702.00748
+https://dspace.mit.edu/bitstream/handle/1721.1/120141/13130_2019_Article_9762.pdf?sequence=1&isAllowed=y
+https://arxiv.org/abs/1902.07987
