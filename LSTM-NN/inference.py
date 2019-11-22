@@ -75,7 +75,7 @@ def evaluate_results(df3d, df3dapp, resorg):
 
     dftemp22 = dftemp[ dftemp[10] == 0]
     print ("0 diff" , dftemp22.shape[0])
-
+    '''
     outputfig=diraux+"/plot-original-predicted.png"
     sns_plot = sns.distplot(dftemp.iloc[:,9:10])
     sns_plot.set(xlabel='Average Distance in MM - original x predicted ', ylabel='Frequency')
@@ -84,6 +84,29 @@ def evaluate_results(df3d, df3dapp, resorg):
     outputfig=diraux+"/plot-original-approximated.png"
     sns_plot2 = sns.distplot(dftemp.iloc[:,10:11])
     sns_plot2.set(xlabel='Average Distance in MM - original x approximated ', ylabel='Frequency')
+    plt.savefig(outputfig)
+    '''
+    #predicted
+    data = dftemp.iloc[:,9:10]
+    # Approximated
+    data2 = dftemp.iloc[:,10:11]
+
+    # Create a figure instance, and the two subplots
+    fig = plt.figure(figsize=(16, 32))
+
+    ax1 = fig.add_subplot(211)
+    ax1.set_title('Predicted')
+    ax1.set_xlabel('Error (Milimeter)')
+
+    ax2 = fig.add_subplot(212)
+    ax2.set_title('Approximated')
+    ax2.set_xlabel('Error (Milimeter)')
+
+    # Predicted
+    sns.distplot( data, ax=ax1)
+    # Approximated
+    sns.distplot(data2, ax=ax2)
+    outputfig=diraux+"/Predicted_Approximated.png"
     plt.savefig(outputfig)
 
 def position_3D_approximation(result,dfyclone):
@@ -123,6 +146,9 @@ def position_3D_approximation(result,dfyclone):
         df3d.loc[index, 'layer_id'] = dfyclone[5].values[0]
         df3d.loc[index, 'module_id'] = dfyclone[6].values[0]
         df3d.loc[index, 'value'] = dfyclone[7].values[0]
+
+        #Apagar da base de predições o registro que já foi associado
+        #dfyclone.drop(dfyclone.index[0], inplace=True)
 
     df3d.drop('X', axis=1, inplace=True)
     df3d.drop('Y', axis=1, inplace=True)
