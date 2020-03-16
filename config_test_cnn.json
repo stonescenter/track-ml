@@ -4,14 +4,15 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "./dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
-        "train_split": 0.70,
+        "filename": "/data/track-ml/eramia/10hits_without_etaphi_filter_pt_less_1.csv",
+        "train_split": 0.80,
         "normalise": true,
-        "cylindrical": false        
+        "cylindrical": true,
+        "num_hits": 10        
     },
     "training": {
-        "epochs": 50,
-        "batch_size": 16,
+        "epochs": 12,
+        "batch_size": 18,
         "save_model": true,
         "load_model": false,
         "use_gpu": true        
@@ -38,7 +39,7 @@
             }, 
             {
                 "type": "dense",
-                "neurons": 50,
+                "neurons": 30,
                 "activation": "relu"
             },              
             {

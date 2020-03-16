@@ -4,41 +4,41 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "./dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "filename": "./dataset/phi025-025_eta025-025_filtered.csv",
         "train_split": 0.70,
-        "normalise": true,
-        "cylindrical": false        
+        "normalise": true
     },
     "training": {
-        "epochs": 50,
-        "batch_size": 16,
+        "epochs": 20,
+        "batch_size": 128,
         "save_model": true,
         "load_model": false,
         "use_gpu": true        
     },
     "model": {
-        "name": "cnn",
+        "name": "lstm-paralel",
         "loss": "mse",
-        "optimizer": "adam",
+        "optimizer": "RMSprop",
         "layers": [
             {
-                "type": "cnn",
-                "filters": 64,
-                "kernel_size": 2,
-                "activation": "relu",
+                "type": "lstm-paralel",
+                "neurons": 400,
                 "input_timesteps": 4,
-                "input_features": 3
+                "input_features": 3,
+                "return_seq": false
             },
-            {
-                "type": "maxpooling",
-                "pool_size": 2
-            },
-            {
-                "type": "flatten"
-            }, 
             {
                 "type": "dense",
-                "neurons": 50,
+                "neurons": 400,
+                "activation": "relu"
+            },             
+            {
+                "type": "dropout",
+                "rate": 0.2
+            },
+            {
+                "type": "dense",
+                "neurons": 20,
                 "activation": "relu"
             },              
             {
