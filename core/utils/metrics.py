@@ -117,4 +117,5 @@ def evaluate_forecast(y_true, y_predicted):
 def summarize_scores(r2, score, scores):
     s_scores = ', '.join(['%.2f' % s for s in scores])
     s_r2 = ', '.join(['%.2f' % s for s in r2])
-    print('RMSE:\t\t[%.3f] \nRMSE features: \t[%s] \nR^2  features:\t[%s] ' % (score, s_scores, s_r2))
+    #print('RMSE:\t\t[%.3f] \nRMSE features: \t[%s] \nR^2  features:\t[%s] ' % (score, s_scores, s_r2))
+    print('R^2  features:\t[%s] \nRMSE:\t\t[%.3f] \nRMSE vector: \t[%s] ' % (s_r2, score, s_scores))
