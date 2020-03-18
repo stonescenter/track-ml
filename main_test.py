@@ -33,28 +33,6 @@ def parse_args():
 
     return args
 
-def gpu():
-    import tensorflow as tf
-    from tensorflow import set_random_seed
-
-    import keras.backend as K
-    from keras.backend.tensorflow_backend import set_session
-    
-    #configure  gpu_options.allow_growth = True in order to CuDNNLSTM layer work on RTX
-    config = tf.ConfigProto(device_count = {'GPU': 0})
-    config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
-    set_session(sess)
-
-def no_gpu():
-    import os
-    os.environ["CUDA_VISIBLE_DEVICES"]="-1"
-    import tensorflow as tf
-
-    config=tf.ConfigProto(log_device_placement=True)
-    sess = tf.Session(config=config)
-    set_session(sess)
-
 def manage_models(config):
     
     type_model = config['model']['name']
@@ -83,7 +61,7 @@ def main():
     # create defaults dirs
     output_path = configs['paths']['save_dir']
     output_logs = configs['paths']['log_dir']
-    data_dir = configs['data']['filename']
+    data_file = configs['data']['filename']
 
     if os.path.isdir(output_path) == False:
         os.mkdir(output_path)
@@ -91,8 +69,8 @@ def main():
     if os.path.isdir(output_logs) == False:
         os.mkdir(output_logs)        
 
-    save_fname = os.path.join(output_path, 'architecture-%s.png' % configs['model']['name'])
-    save_fnameh5 = os.path.join(output_path, 'model-%s.h5' % configs['model']['name'])
+    #save_fname = os.path.join(output_path, 'architecture-%s.png' % configs['model']['name'])
+    #save_fnameh5 = os.path.join(output_path, 'model-%s.h5' % configs['model']['name'])
     
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
@@ -103,7 +81,7 @@ def main():
     num_hits = configs['data']['num_hits']
 
     # prepare data set
-    data = Dataset(data_dir, KindNormalization.Zscore)
+    data = Dataset(data_file, KindNormalization.Zscore)
 
     dataset = data.get_training_data(cylindrical=cylindrical, hits=num_hits)
     #dataset = dataset.iloc[0:2640,0:]
@@ -134,9 +112,6 @@ def main():
     print('[Data] shape data y_train.shape:', y_train.shape)
     print('[Data] shape data X_test.shape:', X_test.shape)
     print('[Data] shape data y_test.shape:', y_test.shape)
-
-    # config gpu
-    gpu()
 
     model = manage_models(configs)
 
@@ -186,14 +161,25 @@ def main():
         y_test_orig = y_test
         y_predicted_orig = predicted
 
+    if cylindrical:
+        coord = 'cylin'
+    else:
+        coord = 'xyz'
+
+    print("[Output] Results ")
+    print("---Parameters--- ")
+    print("\t Model Name    : ", model.name)
+    print("\t Dataset       : ", model.orig_ds_name)
+    print("\t Tracks        : ", len(dataset))
+    print("\t Model saved   : ", model.save_fnameh5) 
+    print("\t Coordenates   : ", coord) 
+    print("\t Model stand   : ", model.normalise) 
 
     # calculing scores
     result = calc_score(y_true_, y_predicted, report=True)
     #r2, rmse, rmses = evaluate_forecast(y_test, predicted)
     r2, rmse, rmses = evaluate_forecast(y_test_orig, y_predicted_orig)  
     summarize_scores(r2, rmse,rmses)
-
- 
 
     print('[Data] shape y_test ', y_test.shape)
     print('[Data] shape predicted ', predicted.shape)
