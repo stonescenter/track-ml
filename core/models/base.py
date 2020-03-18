@@ -18,12 +18,43 @@ from keras.utils import plot_model
 from core.utils.utils import Timer
 import numpy as np
 
+import shortuuid
+import uuid
+
+def get_unique_name(name):
+
+    shortuuid.set_alphabet("0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+    shortuuid.ShortUUID().random(length=16)
+    uid = uuid.uuid5(uuid.NAMESPACE_DNS, name)
+    enc = shortuuid.encode(uid)
+    return enc
+
+def get_decryp_name(key):
+    dec = shortuuid.decode(key)
+    return dec
+
 class BaseModel():
     def __init__(self, configs):
         self.model = Sequential()
         self.name = configs['model']['name']
- 
-        self.save_fnameh5 = os.path.join(configs['paths']['save_dir'], 'model-%s.h5' % (self.name))
+        self.normalise = configs['data']['normalise']
+        self.cylindrical = configs['data']['cylindrical']
+
+        self.orig_ds_name = configs['data']['filename']
+        self.encryp_ds_name = get_unique_name(self.orig_ds_name)
+        self.decryp_ds_name = get_decryp_name(self.encryp_ds_name)
+
+
+        if self.cylindrical:
+            coord = 'cylin'
+        else:
+            coord = 'xyz'
+
+        self.save_fnameh5 = os.path.join(configs['paths']['save_dir'], 
+            'model-%s-%s-coord-%s-normalise-%s.h5' % (self.name, self.encryp_ds_name, coord,
+                str(self.normalise).lower() ))
+        print(self.save_fnameh5)
+
         self.save_fname = os.path.join(configs['paths']['save_dir'], 'architecture-%s.png' % self.name)
 
         self.save = configs['training']['save_model']
@@ -49,7 +80,7 @@ class BaseModel():
             self.model = load_model(self.save_fnameh5)
             return True
         else:
-            print('[Model] Can not load the model from file %s' % self.save_fname)
+            print('[Model] Can not load the model from file %s' % self.save_fnameh5)
         return False
     
     def exist_model(self, filepath):
@@ -123,9 +154,9 @@ class BaseModel():
     def predict_one_hit(self, data):
         #Predict each timestep given the last sequence of true data, in effect only predicting 1 step ahead each time
 
-        print('[Model] Predicting Point-by-Point...')
+        print('[Model] Predicting Hit-by-Hit...')
         predicted = self.model.predict(data)
-        print('[Model] Shape predict result %s size %s' % (predicted.shape, predicted.size))
+        print('[Model] Predicted shape predicted%s size %s' % (predicted.shape, predicted.size))
 
         #predicted = np.reshape(predicted, (predicted.size, 1))
         return predicted

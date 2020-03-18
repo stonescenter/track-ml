@@ -1,0 +1,44 @@
+{
+    "paths": {
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {
+        "filename": "/data/track-ml/eramia/10hits_without_etaphi_filter_pt_less_1.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "cylindrical": true,
+        "num_hits": 10
+    },
+    "training": {
+        "epochs": 12,
+        "batch_size": 18,
+        "save_model": true,
+        "load_model": false,
+        "use_gpu": true        
+    },
+    "model": {
+        "name": "mlp",
+        "loss": "mse",
+        "optimizer": "rmsprop",
+        "layers": [
+            {
+                "type": "mlp",
+                "neurons": 12,
+                "input_features": 3,
+                "input_timesteps": 4,                
+                "activation": "relu"
+            },                  
+            {
+                "type": "dense",
+                "neurons": 6    ,
+                "activation": "relu"
+            },
+            {
+                "type": "dense",
+                "neurons": 3,
+                "activation": "linear"
+            }
+        ]
+    }
+}

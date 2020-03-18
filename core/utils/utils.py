@@ -314,7 +314,7 @@ def track_plot_xyz(list_of_df_in = [],
 
     if kwargs.get('title'):
         title = kwargs.get('title')
-        
+         
     if kwargs.get('opacity'):
         opacity = kwargs.get('opacity')
         if opacity > 1.0:
@@ -349,6 +349,7 @@ def track_plot_xyz(list_of_df_in = [],
     for i in range(len_list_df):
         try:
             df_name = str(list_of_df[i].name)
+            #warnings.warn(df_name, RuntimeWarning, stacklevel=2)
         except:
             df_name = 'track[' + str(i) + ']'
             warnings.warn('For a better visualization, set the name of dataframe to plot:'
@@ -358,7 +359,7 @@ def track_plot_xyz(list_of_df_in = [],
         for j in range(n_tracks):
             if cylindrical is True:
                 # function to convert rho, eta,phi to x,y,z
-                list_of_df[i].iloc[j, :] = conv_slice_rhoetaphi_to_xyz(list_of_df[i].iloc[j, :])
+                list_of_df[i].iloc[j, :] = conv_slice_rhoetaphi_to_xyz(list_of_df[i].iloc[j, :], n_hits=n_hits )
             track[j] = go.Scatter3d(
                 x = list_of_df[i].iloc[j, selected_columns_x],
                 y = list_of_df[i].iloc[j, selected_columns_y],

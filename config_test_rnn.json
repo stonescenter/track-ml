@@ -1,0 +1,44 @@
+{
+    "paths": {
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {         
+        "filename": "/data/track-ml/eramia/phi025-025_eta025-025_train1_allhits_120320_v2.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "cylindrical": true,
+        "num_hits": 10
+    },
+    "training": {
+        "epochs": 12,
+        "batch_size": 18,
+        "save_model": true,
+        "load_model": false,
+        "use_gpu": true        
+    },
+    "model": {
+        "name": "simplernn",
+        "loss": "mse",
+        "optimizer": "rmsprop",
+        "layers": [
+            {
+                "type": "rnn",
+                "neurons": 12,
+                "input_features": 3,
+                "input_timesteps": 4,                
+                "activation": "relu"
+            },
+            {
+                "type": "dense",
+                "neurons": 6,
+                "activation": "relu"
+            },
+            {
+                "type": "dense",
+                "neurons": 3,
+                "activation": "linear"
+            }
+        ]
+    }
+}
