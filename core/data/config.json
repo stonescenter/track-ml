@@ -1,0 +1,25 @@
+{
+    "create": {
+        "lib_path" : "/data/jfialho/git/2020/new/used/track-ml/utils/",
+        "input_dir" : "/data/trackMLDB/train/train_2/",
+        "output_dir" : "/data/track-ml/eramia/test/",
+	"begin_id" : 2820,
+	"end_id" : 2825,
+        "n_cores" : 60,
+        "round_time" : 500,
+        "n_hits_range_min" : 10,
+        "n_hits_range_max" : 10,
+        "phi_range_min" : -0.5,
+        "phi_range_max" : 0.5,
+        "eta_range_min" : 1.0,
+        "eta_range_max" : 2.0,
+        "pt_range_min" : 1.0,
+        "pt_range_max" : Infinity,
+        "silent" : true
+    },	    
+    "join": {
+	"datasets_dir": "/data/track-ml/eramia/test/",
+	"output_path":"/data/track-ml/eramia/test/eta-05_05.csv",
+	"n_split":1000000000000
+    }
+}
