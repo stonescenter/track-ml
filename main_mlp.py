@@ -23,37 +23,16 @@ import numpy as np
 def parse_args():
     """Parse arguments."""
     # Parameters settings
-    parser = argparse.ArgumentParser(description="LSTM implementation ")
+    parser = argparse.ArgumentParser(description="MLP Implementation")
 
     # Dataset setting
     parser.add_argument('--config', type=str, default="config.json", help='Configuration file')
-
+    parser.add_argument('--dataset', type=str, help='Path to dataset')
+    parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
     # parse the arguments
     args = parser.parse_args()
 
     return args
-
-def gpu():
-    import tensorflow as tf
-    from tensorflow import set_random_seed
-
-    import keras.backend as K
-    from keras.backend.tensorflow_backend import set_session
-    
-    #configure  gpu_options.allow_growth = True in order to CuDNNLSTM layer work on RTX
-    config = tf.ConfigProto(device_count = {'GPU': 0})
-    config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
-    set_session(sess)
-
-def no_gpu():
-    import os
-    os.environ["CUDA_VISIBLE_DEVICES"]="-1"
-    import tensorflow as tf
-
-    config=tf.ConfigProto(log_device_placement=True)
-    sess = tf.Session(config=config)
-    set_session(sess)
 
 def manage_models(config):
     
@@ -84,16 +63,13 @@ def main():
     output_path = configs['paths']['save_dir']
     output_logs = configs['paths']['log_dir']
     data_dir = configs['data']['filename']
-
+    
     if os.path.isdir(output_path) == False:
         os.mkdir(output_path)
 
     if os.path.isdir(output_logs) == False:
         os.mkdir(output_logs)        
 
-    save_fname = os.path.join(output_path, 'architecture-%s.png' % configs['model']['name'])
-    save_fnameh5 = os.path.join(output_path, 'model-%s.h5' % configs['model']['name'])
-    
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
 
@@ -101,14 +77,23 @@ def main():
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
+    
+    if args.dataset is not None:
+        data_dir = args.dataset
+        configs['data']['filename'] = data_dir     
+    if args.cylindrical is not None:
+        cylindrical = True if args.cylindrical == "True" else False
+        configs['data']['cylindrical'] = cylindrical
 
-      
+    print(configs['data']['cylindrical'])
+    print(configs['data']['filename'])
+
     # prepare data set
     data = Dataset(data_dir, KindNormalization.Zscore)
     
     dataset = data.get_training_data(cylindrical=cylindrical, hits=num_hits)
     #dataset = dataset.iloc[0:2640,0:]
-    dataset = dataset.iloc[0:31600,0:]
+    #dataset = dataset.iloc[0:31600,0:]
     print('[Data] new shape :', dataset.shape)
 
     print("[Data] Converting to supervised ...")
@@ -174,13 +159,32 @@ def main():
         y_test_orig = y_test
         y_predicted_orig = predicted
 
+    if cylindrical:
+        coord = 'cylin'
+    else:
+        coord = 'xyz'
+
+    orig_stdout = sys.stdout
+    f = open('results/results.txt', 'a')
+    sys.stdout = f
+
+    print("[Output] Results ")
+    print("---Parameters--- ")
+    print("\t Model Name    : ", model.name)
+    print("\t Dataset       : ", model.orig_ds_name)
+    print("\t Tracks        : ", len(dataset))
+    print("\t Model saved   : ", model.save_fnameh5) 
+    print("\t Coordenates   : ", coord) 
+    print("\t Model stand   : ", model.normalise) 
+
     # calculing scores
     result = calc_score(y_true_, y_predicted, report=True)
     #r2, rmse, rmses = evaluate_forecast(y_test, predicted)
     r2, rmse, rmses = evaluate_forecast(y_test_orig, y_predicted_orig)  
     summarize_scores(r2, rmse,rmses)
 
-
+    sys.stdout = orig_stdout
+    f.close()
 
     print('[Data] shape y_test ', y_test.shape)
     print('[Data] shape predicted ', predicted.shape)

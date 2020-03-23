@@ -82,7 +82,7 @@ def calc_score(y_true, y_predicted, report=False):
     if report:
         print(report_string)
 
-    return mae, report_string
+    return report_string
 
 def evaluate_forecast(y_true, y_predicted):
     '''
