@@ -7,10 +7,10 @@ This project is the first version of Track Particles problem and it is part of [
 To run:
 1. Clone our repository
 2. Configure your conda envirotment 
-3. Run ` python main.py --config config.json `. It will create  a first model with LSTM architecture. If you don't have acces to a gpu, you could use the `test_1_lstm_paralel.ipynb` file to run into Google Colab.
+3. There are many scripts to test the problem with diferents models(MLP, CNN, LSTM, RNN and others). For example: ` python main_test.py --config config_test_lstm.json `. It will create a model with a LSTM architecture. If you don't have acces to a gpu, you could use the `test_1_lstm_paralel.ipynb` file to run into Google Colab.
 
 ## Accuracy of Algorithm
-We are using regressions metrics for each hit. Our accuracy is showed for forecas of 5 hit. 
+We are using regressions metrics for each hit. Our accuracy is showed for forecast of 10 hit with . 
 
 ```
 [Output] ---Regression Scores--- 
@@ -22,6 +22,7 @@ RMSE:		[0.170]
 RMSE features: 	[0.15, 0.23, 0.09] 
 R^2  features:	[0.97, 0.94, 0.99] 
 ```
+the last two metrics are vectors of the RMSE and R^2 average.
 
 ## Vizualization
-Open the plot_prediction.ipynb file to see the 5 hit predicted.
+Open the plot_prediction.ipynb file to see the N hits predicted.
