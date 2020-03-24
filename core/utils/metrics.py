@@ -72,8 +72,8 @@ def calc_score(y_true, y_predicted, report=False):
     r2 = r2_score(y_true, y_predicted)
     rmse = sqrt(mean_squared_error(y_true, y_predicted))
     mae = mean_absolute_error(y_true, y_predicted)
-
-    report_string = "[Output] " 
+    
+    report_string = ""
     report_string += "---Regression Scores--- \n"
     report_string += "\tR_2 statistics        (R2)  = " + str(round(r2,3)) + "\n"
     report_string += "\tRoot Mean Square Error(RMSE) = " + str(round(rmse,3)) + "\n"
@@ -82,7 +82,7 @@ def calc_score(y_true, y_predicted, report=False):
     if report:
         print(report_string)
 
-    return mae, report_string
+    return report_string
 
 def evaluate_forecast(y_true, y_predicted):
     '''
@@ -118,4 +118,4 @@ def summarize_scores(r2, score, scores):
     s_scores = ', '.join(['%.2f' % s for s in scores])
     s_r2 = ', '.join(['%.2f' % s for s in r2])
     #print('RMSE:\t\t[%.3f] \nRMSE features: \t[%s] \nR^2  features:\t[%s] ' % (score, s_scores, s_r2))
-    print('R^2  features:\t[%s] \nRMSE:\t\t[%.3f] \nRMSE vector: \t[%s] ' % (s_r2, score, s_scores))
+    print('\tR^2  features:\t[%s] \n\tRMSE:\t\t[%.3f] \n\tRMSE vector: \t[%s] ' % (s_r2, score, s_scores))

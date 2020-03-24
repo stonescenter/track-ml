@@ -49,7 +49,7 @@ class Dataset():
 		self.interval = 11
 		self.cylindrical = False
 		self.data = dataframe.iloc[:, self.start_hits:]
-
+		self.self = 0
 		print("[Data] data loaded from ", input_path)
 
 	def prepare_training_data(self, feature_type, normalise=True, cylindrical=False):
