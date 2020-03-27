@@ -4,14 +4,14 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "filename": "/data/track-ml/eramia/results/eta1_2.csv",
         "train_split": 0.80,
         "normalise": true,
         "cylindrical": true,
         "num_hits": 10
     },
     "training": {
-        "epochs": 10,
+        "epochs": 5,
         "batch_size": 18,
         "save_model": true,
         "load_model": true,

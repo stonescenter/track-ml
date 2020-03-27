@@ -62,7 +62,7 @@ def main():
     # create defaults dirs
     output_path = configs['paths']['save_dir']
     output_logs = configs['paths']['log_dir']
-    data_dir = configs['data']['filename']
+    data_file = configs['data']['filename']
     
     if os.path.isdir(output_path) == False:
         os.mkdir(output_path)
@@ -79,17 +79,14 @@ def main():
     num_hits = configs['data']['num_hits']
     
     if args.dataset is not None:
-        data_dir = args.dataset
-        configs['data']['filename'] = data_dir     
+        data_file = args.dataset
+        configs['data']['filename'] = data_file     
     if args.cylindrical is not None:
         cylindrical = True if args.cylindrical == "True" else False
         configs['data']['cylindrical'] = cylindrical
 
-    print(configs['data']['cylindrical'])
-    print(configs['data']['filename'])
-
     # prepare data set
-    data = Dataset(data_dir, KindNormalization.Zscore)
+    data = Dataset(data_file, KindNormalization.Zscore)
     
     dataset = data.get_training_data(cylindrical=cylindrical, hits=num_hits)
     #dataset = dataset.iloc[0:2640,0:]
@@ -102,8 +99,6 @@ def main():
 
     print('[Data] shape supervised: X%s y%s :' % (X.shape, y.shape))
 
-    # reshape data     
-    #X = data.reshape3d(X, time_steps, num_features)
     # shuffle is True for default value
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-split, shuffle=False, random_state=42)
     
@@ -143,7 +138,6 @@ def main():
     predicted = model.predict_one_hit(X_test)
     print('[Data] shape predicted output ', predicted.shape)
     print('[Data] shape y_test ', y_test.shape)
- 
 
     y_predicted = np.reshape(predicted, (predicted.shape[0]*predicted.shape[1], 1))
     y_true_ = data.reshape2d(y_test, 1)
@@ -164,6 +158,7 @@ def main():
     else:
         coord = 'xyz'
 
+    # save results in a file
     orig_stdout = sys.stdout
     f = open('results/results.txt', 'a')
     sys.stdout = f
@@ -188,7 +183,6 @@ def main():
 
     print('[Data] shape y_test ', y_test.shape)
     print('[Data] shape predicted ', predicted.shape)
-
 
     print('[Data] shape y_test_orig ', y_test_orig.shape)
     print('[Data] shape y_predicted_orig ', y_predicted_orig.shape)

@@ -1158,8 +1158,7 @@ def nearest_hit(input_hits = None,
     if dist_hit is False:
         return real_hit
     else:
-        return real_hit,np.min(dist)        
-        
-        
-        
+        return real_hit,np.min(dist)
+              
+                
 
