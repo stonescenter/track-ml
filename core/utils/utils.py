@@ -15,6 +15,12 @@ from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 
 from pylab import *
 
+import time
+from scipy.spatial import distance
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.metrics import pairwise_distances
+from sklearn.metrics import pairwise_distances_argmin
+
 from .transformation import *
 
 class Timer():
@@ -205,6 +211,47 @@ def calculate_distances_matrix(y_true, y_predicted):
     #dist.sort_values(ascending=False)
 
     return dist
+
+def nearest_hit_modified(hit, hits,
+                         silent = True,
+                         dist_hit = False,
+                         metric = 'euclidean'):   
+ 
+    start_time = time.time()
+    
+    dist = distance.cdist(hits, hit, metric)
+
+    # get the index of minimum distance
+    target_hit_index = np.argmin(dist)
+    
+    if silent is False:    
+        print("--- N_hits: %s" % hits.shape[0])
+        print("--- Hit index: %s" % target_hit_index)
+        print("--- " + str(metric) + " distance: " + str(dist[target_hit_index]))
+        print("--- time: %s seconds" % (time.time() - start_time))
+    
+    # get hits coordinates 
+    real_hit = hits[target_hit_index, :]
+    
+    # removing the hit from bag
+    hits = np.delete(hits, target_hit_index, 0)
+    
+    if dist_hit is False:
+        return real_hit
+    else:
+        return real_hit, np.min(dist)  
+
+def get_nearest_preds(y_true, y_predicted):
+    new_pred = []
+    total = y_predicted.shape[0]
+    
+    for pred in y_predicted:
+        pred = pred.reshape(1,3)
+        # y_true is of bag of hits
+        nearest_hit = nearest_hit_modified(pred, y_true, silent=True)
+        new_pred.append(nearest_hit)
+
+    return np.array(new_pred).reshape(total, 3)
 
 ##########################################
 ####                                  ####                      

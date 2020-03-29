@@ -17,6 +17,7 @@ from core.models.rnn import ModelRNN
 
 from core.utils.metrics import *
 from core.utils.utils import *
+from core.utils.tracktop import *
 
 import numpy as np
 
@@ -27,8 +28,7 @@ def parse_args():
 
     # Dataset setting
     parser.add_argument('--config', type=str, default="config.json", help='Configuration file')
-    parser.add_argument('--dataset', type=str, help='Path to dataset')
-    parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
+
     # parse the arguments
     args = parser.parse_args()
 
@@ -69,6 +69,9 @@ def main():
 
     if os.path.isdir(output_logs) == False:
         os.mkdir(output_logs)        
+
+    #save_fname = os.path.join(output_path, 'architecture-%s.png' % configs['model']['name'])
+    #save_fnameh5 = os.path.join(output_path, 'model-%s.h5' % configs['model']['name'])
     
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
@@ -78,19 +81,13 @@ def main():
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
 
-    if args.dataset is not None:
-        data_file = args.dataset
-        configs['data']['filename'] = data_file     
-    if args.cylindrical is not None:
-        cylindrical = True if args.cylindrical == "True" else False
-        configs['data']['cylindrical'] = cylindrical    
-
     # prepare data set
     data = Dataset(data_file, KindNormalization.Zscore)
 
     dataset = data.get_training_data(cylindrical=cylindrical, hits=num_hits)
     #dataset = dataset.iloc[0:2640,0:]
     #dataset = dataset.iloc[0:31600,0:]
+    
     print('[Data] new shape :', dataset.shape)
 
     print("[Data] Converting to supervised ...")
@@ -101,9 +98,16 @@ def main():
     
     X = data.reshape3d(X, time_steps, num_features)
 
+    # Data is converted to supervisionated
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-split, shuffle=True, random_state=123)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-split, shuffle=False, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-split, shuffle=False)
     #X_train, X_test, y_train, y_test = data.train_test_split(X, y, train_size=split)
+
+    # reshape data 
+    #X_train_tensor = data.reshape3d(X_train, time_steps, num_features)
+    #X_test_tensor = data.reshape3d(X_test, time_steps, num_features)
+    #print('[Data] re-shape X data ', X_train_tensor.shape)
+    #print('[Data] re-shape X data ', X_test_tensor.shape)
 
     print('[Data] shape data X_train.shape:', X_train.shape)
     print('[Data] shape data y_train.shape:', y_train.shape)
@@ -119,10 +123,6 @@ def main():
     loadModel = configs['training']['load_model']
     
     if loadModel == False:
-        # if exist, please used the compiled model!
-        if model.exist_model(model.save_fnameh5):
-            print("[Warning] Please there is a previous model compiled for %s use it" % data_file)
-            return
 
         model.build_model()
 
@@ -146,12 +146,14 @@ def main():
     print('[Data] shape predicted output ', predicted.shape)
     print('[Data] shape y_test ', y_test.shape)
  
+
     y_predicted = np.reshape(predicted, (predicted.shape[0]*predicted.shape[1], 1))
     y_true_ = data.reshape2d(y_test, 1)
 
     print('[Data] new shape y_test, y_true_ ', y_true_.shape)
     print('[Data] new shape y_predicted ', y_predicted.shape)
     
+
     # we need to transform to original data
     if normalise:
         y_test_orig = data.inverse_transform_y(y_test)
@@ -164,11 +166,6 @@ def main():
         coord = 'cylin'
     else:
         coord = 'xyz'
-
-    # save results in a file    
-    orig_stdout = sys.stdout
-    f = open('results/results.txt', 'a')
-    sys.stdout = f        
 
     print("[Output] Results ")
     print("---Parameters--- ")
@@ -184,9 +181,6 @@ def main():
     #r2, rmse, rmses = evaluate_forecast(y_test, predicted)
     r2, rmse, rmses = evaluate_forecast(y_test_orig, y_predicted_orig)  
     summarize_scores(r2, rmse,rmses)
-
-    sys.stdout = orig_stdout
-    f.close()    
 
     print('[Data] shape y_test ', y_test.shape)
     print('[Data] shape predicted ', predicted.shape)
@@ -217,7 +211,7 @@ def main():
     #                                                  cylindrical=cylindrical)
     
     #X = data.get_training_data(cylindrical=False, hit=10)
-    X_train, X_test_new = train_test_split(dataset, test_size=1-split, shuffle=False, random_state=42)
+    X_train, X_test_new = train_test_split(dataset, test_size=1-split, shuffle=False)
     #X_train, X_test = data.train_test_split(dataset, y, train_size=split)
 
     # 18 fields

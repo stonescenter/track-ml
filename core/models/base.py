@@ -53,8 +53,7 @@ class BaseModel():
         self.save_fnameh5 = os.path.join(configs['paths']['save_dir'], 
             'model-%s-%s-coord-%s-normalise-%s.h5' % (self.name, self.encryp_ds_name, coord,
                 str(self.normalise).lower() ))
-        print(self.save_fnameh5)
-
+        
         self.save_fname = os.path.join(configs['paths']['save_dir'], 'architecture-%s.png' % self.name)
 
         self.save = configs['training']['save_model']

@@ -1,0 +1,9 @@
+"filename": "/data/track-ml/eramia/10hits_without_etaphi_filter_30000hits.csv"
+"filename": "/data/track-ml/eramia/10hits_without_etaphi_filter_pt_greater_1.csv"
+"filename": "/data/track-ml/eramia/10hits_without_etaphi_filter_pt_less_1.csv"
+"filename": "dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+
+"filename": "/data/track-ml/eramia/results/eta-05_05.csv
+"filename": "/data/track-ml/eramia/results/eta1_2.csv
+"filename": "/data/track-ml/eramia/results/eta2_3.csv
+

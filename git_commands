@@ -1,0 +1,17 @@
+utils gits commands
+https://garygregory.wordpress.com/2016/11/10/how-to-catch-up-my-git-fork-to-master/
+
+git fetch upstream
+git checkout master
+git merge upstream/master
+
+
+monta:
+	sshfs sataucuri@headtop.ncc.unesp.br:/home/sataucuri/ ~/remotehome/headtop
+session:
+	ssh headtop.ncc.unesp.br -l sataucuri
+inicia na top04
+	conda activate trackml2
+	jupyter-notebook --ip=0.0.0.0 --port=8888
+inicia localmente
+	ssh -L 8888:top01:8888 headtop.ncc.unesp.br -l sataucuri
