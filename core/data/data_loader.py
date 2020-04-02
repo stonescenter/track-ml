@@ -22,13 +22,13 @@ class KindNormalization(Enum):
 	Nothing = 4
 
 class Dataset():
-	def __init__(self, input_path, kind_normalization):
+	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization):
 
 		#np.set_printoptions(suppress=True)
 
 		# com index_col ja não inclui a coluna index 
 		dataframe = pd.read_csv(input_path, header=0, engine='python')
-		
+		print("[Data] Data loaded from ", input_path)
 		self.kind = kind_normalization
 		if self.kind == KindNormalization.Scaling:
 			self.x_scaler = MinMaxScaler(feature_range=(0, 1))
@@ -47,10 +47,49 @@ class Dataset():
 		'''
 		self.start_hits = 9
 		self.interval = 11
-		self.cylindrical = False
+
 		self.data = dataframe.iloc[:, self.start_hits:]
-		self.self = 0
-		print("[Data] data loaded from ", input_path)
+		#self.self = 0
+
+		self.cylindrical = cylindrical
+
+		begin_coord = 0
+		end_coord = 0
+		begin_val = 10
+		end_val = 11
+
+		if self.cylindrical == False:
+			begin_coord = 1
+			end_coord = 4
+		# cilyndrical coordinates    
+		elif self.cylindrical == True:
+			begin_coord = 4
+			end_coord = 7
+
+		begin_cols = [begin_coord+(self.interval*hit) for hit in range(0, hits)]
+		end_cols = [end_coord+(self.interval*hit) for hit in range(0, hits)]
+
+		new_df = pd.DataFrame()
+
+		for c in range(0,len(begin_cols)):
+		    frame = self.data.iloc[:,np.r_[begin_cols[c]:end_cols[c]]]
+		    new_df = pd.concat([new_df, frame], axis=1)
+
+		self.data = new_df
+
+		# we nee remove data for avoid problems
+		res = len(self.data) % 10
+		if res != 0:
+			self.data = self.data.iloc[:-res,:]
+
+		i_split = round(len(self.data) * train_size)
+
+		self.data_train = self.data.iloc[0:i_split,0:]
+		self.data_test = self.data.iloc[i_split:,0:]
+
+		print("[Data] Data set shape ", self.data.shape)		
+		print("[Data] Data train shape ", self.data_train.shape)		
+		print("[Data] Data test shape ", self.data_test.shape)
 
 	def prepare_training_data(self, feature_type, normalise=True, cylindrical=False):
 
@@ -143,50 +182,101 @@ class Dataset():
 			# return x_data, y_data normalizated with no data splited
 			return (self.x_data, self.y_data)
 
-	def get_training_data(self, cylindrical=False, hits=5):
+	def get_training_data(self, n_hit_in, n_hit_out, n_features, normalise=False):
 		'''
-			This function return a dataset with the numbers of hits with
-			cartesian or cylindrical positions.
+			n_hit_in : 4 number of hits
+			n_hit_out: 1 number of future hits
+			n_features 3
 		'''
+		X , Y = [],[]
 
-		self.cylindrical = cylindrical
+		sequences = self.data_train.values
 
-		begin_coord = 0
-		end_coord = 0
-		begin_val = 10
-		end_val = 11
+		rows = sequences.shape[0]
+		cols = sequences.shape[1]
 
-		if self.cylindrical == False:
-			begin_coord = 1
-			end_coord = 4
-		# cilyndrical coordinates    
-		elif self.cylindrical == True:
-			begin_coord = 4
-			end_coord = 7
+		for i in range(0, rows):
+			end_idx = 0
+			out_end_idx = 0
+			for j in range(0, cols, n_features):
+				end_ix = j + n_hit_in*n_features
+				out_end_idx = end_ix + n_hit_out*n_features
 
-		begin_cols = [begin_coord+(self.interval*hit) for hit in range(0, hits)]
-		end_cols = [end_coord+(self.interval*hit) for hit in range(0, hits)]
+				if out_end_idx > cols+1:                                      
+					#print('corta ', out_end_idx)
+					break
+				#if i < 5:	
+				#    print('[%s,%s:%s][%s,%s:%s]' % (i, j, end_ix, i, end_ix, out_end_idx))
 
-		new_df = pd.DataFrame()
-		for c in range(0,len(begin_cols)):
-		    frame = self.data.iloc[:,np.r_[begin_cols[c]:end_cols[c]]]
-		    new_df = pd.concat([new_df, frame], axis=1)
-
-		self.x_data = new_df	          
-		#self.y_data = self.x_data.iloc[:, -3:] # last hit
-
+				#seq_x, seq_y = sequences.iloc[i, j:end_ix], sequences.iloc[i, end_ix:out_end_idx]
+				seq_x, seq_y = sequences[i, j:end_ix], sequences[i, end_ix:out_end_idx]
+				X.append(seq_x)
+				Y.append(seq_y)
+					
+		x_data, y_data = 0,0
 		# normalization just of features.
-		#if normalise:
-		#	xscaled = self.x_scaler.fit_transform(self.x_data.values)
-		#	self.x_data = pd.DataFrame(xscaled)			
+		if normalise:
+			xscaled = self.x_scaler.fit_transform(X)
+			x_data = pd.DataFrame(xscaled)			
 
-		self.len = len(self.x_data) 
+			yscaled = self.y_scaler.fit_transform(Y)
+			y_data = pd.DataFrame(yscaled)	
+		else:
+			x_data = pd.DataFrame(X)			
+			y_data = pd.DataFrame(Y)				
 
-		print("[Data] Data Set original with %s hits and shape%s" % (hits, self.x_data.shape))
+		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
 
-		return self.x_data
+	def get_testing_data(self, n_hit_in, n_hit_out, n_features, normalise=False):
+
+		X , Y = [],[]
+
+		sequences = self.data_test.values
+
+		rows = sequences.shape[0]
+
+		for i in range(0, rows):
+			end_ix = n_hit_in*n_features
+			seq_x, seq_y = sequences[i, 0:end_ix], sequences[i, end_ix:]
+			X.append(seq_x)
+			Y.append(seq_y)
+
+		x_data, y_data = 0,0
+		# normalization just of features.
+		if normalise:
+			xscaled = self.x_scaler.fit_transform(X)
+			x_data = pd.DataFrame(xscaled)			
+
+			yscaled = self.y_scaler.fit_transform(Y)
+			y_data = pd.DataFrame(yscaled)	
+		else:
+			x_data = pd.DataFrame(X)			
+			y_data = pd.DataFrame(Y)				
+
+		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
+
+	def get_test_data2(self, seq_len, normalise=False):
+
+		'''
+			Create x, y test data windows
+			Warning: batch method, not generative, make sure you have enough memory to
+			load data, otherwise reduce size of the training split.
+		'''
+
+		data_windows = []
+		for i in range(self.len_test - seq_len):
+			data_windows.append(self.data_test[i:i+seq_len])
+
+		data_windows = np.array(data_windows).astype(float)
+		data_windows = self.normalise_windows(data_windows, single_window=False) if normalise else data_windows
+
+		x = data_windows[:, :-1]
+		y = data_windows[:, -1, [0]]
+
+		return x,y
 
 	def convert_to_supervised(self, sequences, n_hit_in, n_hit_out, n_features, normalise=False):
+
 		'''
 			n_hit_in : 4 number of hits
 			n_hit_out: 1 number of future hits
@@ -222,15 +312,15 @@ class Dataset():
 		# normalization just of features.
 		if normalise:
 			xscaled = self.x_scaler.fit_transform(X)
-			self.x_data = pd.DataFrame(xscaled)			
+			x_data = pd.DataFrame(xscaled)			
 
 			yscaled = self.y_scaler.fit_transform(Y)
-			self.y_data = pd.DataFrame(yscaled)	
+			y_data = pd.DataFrame(yscaled)	
 		else:
-			self.x_data = pd.DataFrame(X)			
-			self.y_data = pd.DataFrame(Y)				
+			x_data = pd.DataFrame(X)			
+			y_data = pd.DataFrame(Y)				
 
-		return pd.DataFrame(self.x_data) , pd.DataFrame(self.y_data)
+		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
 
 	def convert_supervised_to_normal(self, sequences, n_hit_in, n_hit_out, hits):
 		'''
