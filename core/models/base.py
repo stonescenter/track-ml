@@ -42,7 +42,8 @@ class BaseModel():
 
         path_to, filename = os.path.split(configs['data']['filename'])
         #print(get_unique_name(filename))
-        self.orig_ds_name = configs['data']['filename']
+        #self.orig_ds_name = configs['data']['filename']
+        self.orig_ds_name = filename
 
         self.encryp_ds_name = get_unique_name(self.orig_ds_name)
         self.decryp_ds_name = get_decryp_name(self.encryp_ds_name)
@@ -54,7 +55,7 @@ class BaseModel():
         else:
             coord = 'xyz'
 
-        self.save_fnameh5 = os.path.join(configs['paths']['save_dir'], 
+        self.save_fnameh5 = os.path.join(configs['paths']['bin_dir'], 
             'model-%s-%s-coord-%s-normalise-%s.h5' % (self.name, self.encryp_ds_name, coord,
                 str(self.normalise).lower() ))
         print(self.save_fnameh5)

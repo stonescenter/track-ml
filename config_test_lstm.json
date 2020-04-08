@@ -1,10 +1,11 @@
 {
     "paths": {
+        "bin_dir": "/data/track-ml/compiled/",
         "save_dir": "results",
         "log_dir": "logs"
     },
     "data": {
-        "filename": "dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "filename": "/data/track-ml/eramia/results/eta-05_05.csv",
         "train_split": 0.80,
         "normalise": true,
         "cylindrical": false,
