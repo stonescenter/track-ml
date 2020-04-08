@@ -80,6 +80,7 @@ class Dataset():
 		# we nee remove data for avoid problems
 		res = len(self.data) % 10
 		if res != 0:
+			print('\t We have removed %s values ', res)
 			self.data = self.data.iloc[:-res,:]
 
 		i_split = round(len(self.data) * train_size)

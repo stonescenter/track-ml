@@ -97,11 +97,12 @@ def evaluate_forecast(y_true, y_predicted):
     rows = y_true.shape[0]
     cols = y_true.shape[1]
 
-    for i in range(cols):
-        mse = mean_squared_error(y_true[:,i], y_predicted[:,i])
-        rmses.append(sqrt(mse))
-        
-        r2 = r2_score(y_true[:,i], y_predicted[:,i])
+    for i in range(rows):
+        #mse = mean_squared_error(y_true[:,i], y_predicted[:,i])
+        mse = mean_squared_error(y_true[i,:], y_predicted[i,:])
+        rmses.append(sqrt(mse))        
+        #r2 = r2_score(y_true[:,i], y_predicted[:,i])
+        r2 = r2_score(y_true[i,:], y_predicted[i,:])        
         r2s.append(r2)
         
     # calculate total see definition of MSE
@@ -118,4 +119,4 @@ def summarize_scores(r2, score, scores):
     s_scores = ', '.join(['%.2f' % s for s in scores])
     s_r2 = ', '.join(['%.2f' % s for s in r2])
     #print('RMSE:\t\t[%.3f] \nRMSE features: \t[%s] \nR^2  features:\t[%s] ' % (score, s_scores, s_r2))
-    print('\tR^2  features:\t[%s] \n\tRMSE:\t\t[%.3f] \n\tRMSE vector: \t[%s] ' % (s_r2, score, s_scores))
+    print('\tR^2  features:\t[%s] \n\tRMSE average:\t\t[%.3f] \n\tRMSE vector: \t[%s] ' % (s_r2, score, s_scores))

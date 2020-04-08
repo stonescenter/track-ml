@@ -40,10 +40,14 @@ class BaseModel():
         self.normalise = configs['data']['normalise']
         self.cylindrical = configs['data']['cylindrical']
 
+        path_to, filename = os.path.split(configs['data']['filename'])
+        #print(get_unique_name(filename))
         self.orig_ds_name = configs['data']['filename']
+
         self.encryp_ds_name = get_unique_name(self.orig_ds_name)
         self.decryp_ds_name = get_decryp_name(self.encryp_ds_name)
 
+        print(self.encryp_ds_name)
 
         if self.cylindrical:
             coord = 'cylin'
@@ -53,7 +57,8 @@ class BaseModel():
         self.save_fnameh5 = os.path.join(configs['paths']['save_dir'], 
             'model-%s-%s-coord-%s-normalise-%s.h5' % (self.name, self.encryp_ds_name, coord,
                 str(self.normalise).lower() ))
-        
+        print(self.save_fnameh5)
+
         self.save_fname = os.path.join(configs['paths']['save_dir'], 'architecture-%s.png' % self.name)
 
         self.save = configs['training']['save_model']
@@ -181,8 +186,9 @@ class BaseModel():
         predicted = []
         for i in range(len(data)):
             predicted.append(self.model.predict(curr_frame[newaxis,:,:])[0,0])
-            curr_frame = curr_frame[1:]
-            curr_frame = np.insert(curr_frame, [window_size-2], predicted[-1], axis=0)
+            curr_frame = curr_frame[1:] # move 1 
+            # inserta um  valor np.insert(array, index, value, axes)
+            curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
         return predicted
 
 
