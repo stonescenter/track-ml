@@ -115,6 +115,66 @@ def evaluate_forecast(y_true, y_predicted):
 
     return r2s, rmst, rmses
 
+def evaluate_forecast_seq(y_true, y_predicted, features=3):
+    '''
+        Return 
+            score  : return the score total with RMSE
+            scores : return the score RMSE for each features
+    '''
+    rmses = []
+    r2s = []
+    y_true = np.array(y_true)
+    y_predicted = np.array(y_predicted)
+    
+    rows = y_true.shape[0]
+    cols = y_true.shape[1]
+
+    mse_x, mse_y, mse_z = 0,0,0
+    r2_x, r2_y, r2_z = 0,0,0
+    
+    for j in range(0, cols, features):
+        x, y, z = (j + 0),  (j + 1), (j + 2)
+        # calculate by column
+        mse_x+= mean_squared_error(y_true[:,x], y_predicted[:,x])
+        mse_y+= mean_squared_error(y_true[:,y], y_predicted[:,y])
+        mse_x+= mean_squared_error(y_true[:,z], y_predicted[:,z])
+
+        r2_x+= r2_score(y_true[:,x], y_predicted[:,x])
+        r2_y+= r2_score(y_true[:,y], y_predicted[:,y])
+        r2_z+= r2_score(y_true[:,z], y_predicted[:,z])
+        
+        #mse = mean_squared_error(y_true[:,i], y_predicted[:,i])
+        
+        #mse = mean_squared_error(y_true[i,j:end_idx], y_predicted[i,j:end_idx])      
+        #r2 = r2_score(y_true[:,i], y_predicted[:,i])
+        #r2 = r2_score(y_true[i,j:end_idx], y_predicted[i,j:end_idx])        
+
+    rmses.append(sqrt(mse_x/(cols*rows)))  
+    rmses.append(sqrt(mse_y/(cols*rows)))
+    rmses.append(sqrt(mse_z/(cols*rows))) 
+    
+    #print(r2_x, r2_y, r2_z)
+    r2s.append(r2_x/(rows))
+    r2s.append(r2_y/(rows))
+    r2s.append(r2_z/(rows))
+        
+    # calculate total see definition of MSE
+    s = 0
+    seed = 1
+    for row in range(rows):
+        end_idx = 0
+        for col in range(0, cols):
+            #end_idx = col + seed*features
+            s += (y_true[row, col] - y_predicted[row, col])**2
+            #s += (y_true.iloc[row, col:end_idx].values - y_predicted.iloc[row,col:end_idx].values)**2
+            #s += calculate_distances_vec(y_true.iloc[row, col:end_idx], y_predicted.iloc[row,col:end_idx])
+                                    
+            #print('[%s], [%s] d=%s' % (y_true.iloc[row, col:end_idx].values, 
+            #                           y_predicted.iloc[row,col:end_idx].values, s))
+
+    rmst = sqrt(s/(cols*rows))
+
+    return r2s, rmst, rmses
 def summarize_scores(r2, score, scores):
     s_scores = ', '.join(['%.2f' % s for s in scores])
     s_r2 = ', '.join(['%.2f' % s for s in r2])

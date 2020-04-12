@@ -80,7 +80,8 @@ class Dataset():
 		# we nee remove data for avoid problems
 		res = len(self.data) % 10
 		if res != 0:
-			print('\t We have removed %s values ', res)
+			# this is a big bug. the easy solution was removing some values non divided with 10. 
+			print('\t We have removed %s unuseful tracks. We believe you need to know. ' % res)
 			self.data = self.data.iloc[:-res,:]
 
 		i_split = round(len(self.data) * train_size)

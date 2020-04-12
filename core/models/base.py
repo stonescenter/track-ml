@@ -4,22 +4,21 @@ __version__ = "1.0.0"
 
 import os
 import math
+import uuid
+import shortuuid
+import numpy as np
 import datetime as dt
 
-import tensorflow as tf
+from scipy.spatial import distance
 
+import tensorflow as tf
 import keras.backend as K
 from keras.backend.tensorflow_backend import set_session
-
 from keras.models import Sequential, load_model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.utils import plot_model   
 
 from core.utils.utils import Timer
-import numpy as np
-
-import shortuuid
-import uuid
 
 def get_unique_name(name):
 
@@ -174,22 +173,120 @@ class BaseModel():
             curr_frame = data[i*prediction_len]
             predicted = []
             for j in range(prediction_len):
-                predicted.append(self.model.predict(curr_frame[newaxis,:,:])[0,0])
+                predicted.append(self.model.predict(curr_frame[np.newaxis,:,:])[0,0])
                 curr_frame = curr_frame[1:]
                 curr_frame = np.insert(curr_frame, [window_size-2], predicted[-1], axis=0)
             prediction_seqs.append(predicted)
         return prediction_seqs
  
-    def predict_sequence_full(self, data, window_size):
+    def predict_full_sequences(self, data, y_true, hits_len):
+
+        timer = Timer()
+        timer.start() 
+        print('[Model] Predicting Sequences Started')
+
+        total = len(data)
+        
+        correct = 0
+        incorrect = 0
+        pred_sequences = []
+        
+        for j in range(total):       
+            curr_frame = data[j]
+            predicted = []
+            for i in range(hits_len):            
+                pred = self.model.predict(curr_frame[np.newaxis,:,:])                         
+                predicted.append(pred)
+                curr_frame = curr_frame[1:]
+                # inserta um  valor np.insert(array, index, value, axes)
+                curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
+                #print(curr_frame, predicted[-1])
+            
+            pred_sequences.append(predicted)
+        
+        print('[Model] Prediction Finished.')
+        timer.stop()
+
+        return pred_sequences
+
+    def predict_full_sequences_nearest(self, x_test, y_true, hits_len):
         #Shift the window by 1 new prediction each time, re-run predictions on new window
-        print('[Model] Predicting Sequences Full...')
-        curr_frame = data[0]
-        predicted = []
-        for i in range(len(data)):
-            predicted.append(self.model.predict(curr_frame[newaxis,:,:])[0,0])
-            curr_frame = curr_frame[1:] # move 1 
-            # inserta um  valor np.insert(array, index, value, axes)
-            curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
-        return predicted
+        timer = Timer()
+        timer.start()       
+         
+        print('[Model] Predicting Sequences with Nearest Started')
 
+        total = len(x_test)
+        
+        correct = 0
+        incorrect = 0
+        pred_sequences = []
+        
+        for j in range(total):       
+            curr_frame = x_test[j]
+            #print(curr_frame)
+            predicted = []
+            #y_true = y_true[j:hits_len]
+            for i in range(hits_len):            
+                pred = self.model.predict(curr_frame[np.newaxis,:,:])
 
+                nearest_pred, idx = self.nearest_hit(pred, y_true, silent=True)
+               
+                #y_true = np.delete(y_true, idx, 0)
+        
+                '''            
+                d1 = calculate_distances_vec(y_true[i], nearest_pred)
+                d2 = calculate_distances_vec(y_true[i], y_pred)
+
+                if d1<d2:
+                    predicted.append(nearest_pred)
+                    incorrect=+1
+                elif d1>d2:
+                    predicted.append(pred)
+                    incorrect=+1
+                elif d1==d2:          
+                    correct=+1                
+                '''
+                predicted.append(nearest_pred)
+                curr_frame = curr_frame[1:]
+                # inserta um  valor np.insert(array, index, value, axes)
+                curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
+                #print(curr_frame, predicted[-1])
+            
+            pred_sequences.append(predicted)
+
+        print('[Model] Prediction Finished.')
+        timer.stop()
+
+        return pred_sequences
+
+    def nearest_hit(self, hit, hits,
+                             silent = True,
+                             dist_hit = False,
+                             metric = 'euclidean'):
+     
+        if silent is False:
+            timer = Timer()
+            timer.start()
+
+        dist = distance.cdist(hits, hit, metric)
+
+        # get the index of minimum distance
+        target_hit_index = np.argmin(dist)
+        
+        if silent is False:    
+            print("--- N_hits: %s" % hits.shape[0])
+            print("--- Hit index: %s" % target_hit_index)
+            print("--- " + str(metric) + " distance: " + str(dist[target_hit_index]))
+            print("--- time: %s seconds" % timer.stop())
+
+        # get hits coordinates 
+        real_hit = hits[target_hit_index, :]
+        
+        # removing the hit from bag
+        #hits = np.delete(hits, target_hit_index, 0)
+        
+        if dist_hit is False:
+            return real_hit, target_hit_index
+        else:
+            return real_hit, target_hit_index, np.min(dist) 

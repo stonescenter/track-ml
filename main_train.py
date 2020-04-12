@@ -86,29 +86,17 @@ def main():
         configs['data']['cylindrical'] = cylindrical    
 
     # prepare data set
-    data = Dataset(data_file, KindNormalization.Zscore)
+    data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
-    dataset = data.get_training_data(cylindrical=cylindrical, hits=num_hits)
-    #dataset = dataset.iloc[0:2640,0:]
-    #dataset = dataset.iloc[0:31600,0:]
-    print('[Data] new shape :', dataset.shape)
+    X_train, y_train = data.get_training_data(n_hit_in=time_steps, n_hit_out=1,
+                                 n_features=num_features, normalise=normalise)
 
-    print("[Data] Converting to supervised ...")
-    X, y = data.convert_to_supervised(dataset.values, n_hit_in=time_steps,
-                                n_hit_out=1, n_features=num_features, normalise=normalise)
-
-    print('[Data] shape supervised: X%s y%s :' % (X.shape, y.shape))
+    print('[Data] shape supervised: X%s y%s :' % (X_train.shape, y_train.shape))
     
-    X = data.reshape3d(X, time_steps, num_features)
-
-    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-split, shuffle=True, random_state=123)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1-split, shuffle=False, random_state=42)
-    #X_train, X_test, y_train, y_test = data.train_test_split(X, y, train_size=split)
+    X_train = data.reshape3d(X_train, time_steps, num_features)
 
     print('[Data] shape data X_train.shape:', X_train.shape)
     print('[Data] shape data y_train.shape:', y_train.shape)
-    print('[Data] shape data X_test.shape:', X_test.shape)
-    print('[Data] shape data y_test.shape:', y_test.shape)
 
     model = manage_models(configs)
 
@@ -141,24 +129,35 @@ def main():
             print ('[Error] please change the config file : load_model')
             return
 
-    print('[Data] Predicting dataset with input ...', X_test.shape)
-    predicted = model.predict_one_hit(X_test)
-    print('[Data] shape predicted output ', predicted.shape)
-    print('[Data] shape y_test ', y_test.shape)
- 
-    y_predicted = np.reshape(predicted, (predicted.shape[0]*predicted.shape[1], 1))
-    y_true_ = data.reshape2d(y_test, 1)
+    # prepare data set
+    data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
-    print('[Data] new shape y_test, y_true_ ', y_true_.shape)
-    print('[Data] new shape y_predicted ', y_predicted.shape)
+    X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
+                                 n_features=num_features, normalise=normalise)
+
+    print('[Data] shape data X_test.shape:', X_test.shape)
+    print('[Data] shape data y_test.shape:', y_test.shape)
+
+    # convertimos a matriz do test em um vetor
+    X_test_ = data.reshape3d(X_test, time_steps, num_features) 
+    y_test_ = convert_matrix_to_vec(y_test, num_features)
+    y_test_ = np.array(y_test_)
+
+    print('[Data] Predicting dataset with input ...', X_test_.shape)
+    
+    seq_len = num_hits - time_steps
+    pred_full_res = model.predict_full_sequences_nearest(X_test_, y_test_, seq_len)
+
+    predicted_nearest = convert_vector_to_matrix(pred_full_res, num_features, seq_len)
+    predicted_nearest = to_frame(predicted_nearest)
     
     # we need to transform to original data
     if normalise:
         y_test_orig = data.inverse_transform_y(y_test)
-        y_predicted_orig = data.inverse_transform_y(predicted)
+        y_predicted_orig = data.inverse_transform_y(predicted_nearest)
     else:
         y_test_orig = y_test
-        y_predicted_orig = predicted
+        y_predicted_orig = predicted_nearest
 
     if cylindrical:
         coord = 'cylin'
@@ -174,69 +173,34 @@ def main():
     print("---Parameters--- ")
     print("\t Model Name    : ", model.name)
     print("\t Dataset       : ", model.orig_ds_name)
-    print("\t Tracks        : ", len(dataset))
+    print("\t Tracks        : ", len(X_test))
     print("\t Model saved   : ", model.save_fnameh5) 
     print("\t Coordenates   : ", coord) 
     print("\t Model stand   : ", model.normalise) 
 
+    y_test_orig = pd.DataFrame(y_test_orig)
+    y_predicted_orig = pd.DataFrame(y_predicted_orig)
+
     # calculing scores
-    result = calc_score(y_true_, y_predicted, report=True)
-    #r2, rmse, rmses = evaluate_forecast(y_test, predicted)
-    r2, rmse, rmses = evaluate_forecast(y_test_orig, y_predicted_orig)  
-    summarize_scores(r2, rmse,rmses)
+    result = calc_score(data.reshape2d(y_test_orig, 1),
+                        data.reshape2d(y_predicted_orig, 1), report=False)
+
+    r2, rmse, rmses = evaluate_forecast_seq(y_test_orig, y_predicted_orig)
+    summarize_scores(r2, rmse, rmses)
 
     sys.stdout = orig_stdout
     f.close()    
 
-    print('[Data] shape y_test ', y_test.shape)
-    print('[Data] shape predicted ', predicted.shape)
-
-    # print('[Output] Finding shortest points ... ')
-    # near_points = get_shortest_points(y_test, predicted)
-    # y_near_points = pd.DataFrame(near_points)
-
-    # print('[Data] shape predicted ', y_near_points.shape)
-
-
-    #y_near_orig = data.inverse_transform(y_near_points)
-
     print('[Data] shape y_test_orig ', y_test_orig.shape)
     print('[Data] shape y_predicted_orig ', y_predicted_orig.shape)
 
-    # print('[Output] Calculating distances ...')
-
-    # dist0 = calculate_distances_matrix(y_predicted_orig, y_test_orig)
-    # dist1 = calculate_distances_matrix(y_predicted_orig, y_near_orig)
-
-    # print('[Output] Saving distances ... ')
-    # save_fname = os.path.join(save_dir, 'distances.png' )
-    # plot_distances(dist0, dist1, save_fname)
-
-    #Save data to plot
-    #X, y = data.prepare_training_data(FeatureType.Positions, normalise=False,
-    #                                                  cylindrical=cylindrical)
-    
-    #X = data.get_training_data(cylindrical=False, hit=10)
-    X_train, X_test_new = train_test_split(dataset, test_size=1-split, shuffle=False, random_state=42)
-    #X_train, X_test = data.train_test_split(dataset, y, train_size=split)
-
-    # 18 fields
-    y_predicted_orig = pd.DataFrame(y_predicted_orig)
-    y_predicted_orig = data.convert_supervised_to_normal(y_predicted_orig.values, n_hit_in=4, n_hit_out=1, hits=10)
-    y_predicted_orig = pd.DataFrame(y_predicted_orig)
-    print('y_predicted_orig shape ', y_predicted_orig.shape)
-
-    y_true_orig = pd.DataFrame(y_test_orig)
-    y_true_orig = data.convert_supervised_to_normal(y_true_orig.values, n_hit_in=4, n_hit_out=1, hits=10)
-    y_true_orig = pd.DataFrame(y_true_orig)
-    print('y_true_orig shape ', y_true_orig.shape)
-
-    x_true = X_test_new.iloc[:,0:time_steps*num_features]
-    y_true = X_test_new.iloc[:,time_steps*num_features:]
+    # call this function againt with normalise False
+    x_true, y_true = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
+                                     n_features=num_features, normalise=False)
 
     if cylindrical:
 
-        y_true_orig.to_csv(os.path.join(output_path, 'y_true_%s_cylin.csv' % configs['model']['name']),
+        y_test_orig.to_csv(os.path.join(output_path, 'y_true_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
         y_predicted_orig.to_csv(os.path.join(output_path, 'y_pred_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
@@ -244,14 +208,15 @@ def main():
                     header=False, index=False)
     else:
 
-        y_true_orig.to_csv(os.path.join(output_path, 'y_true_%s_xyz.csv' % configs['model']['name']),
+        y_test_orig.to_csv(os.path.join(output_path, 'y_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
         y_predicted_orig.to_csv(os.path.join(output_path, 'y_pred_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
         x_true.to_csv(os.path.join(output_path, 'x_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
 
-    print('[Output] Results saved in files %', output_path)
+    print('[Output] All results saved at %s directory ' % output_path)
+
 
 if __name__=='__main__':
     main()

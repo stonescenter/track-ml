@@ -212,34 +212,36 @@ def calculate_distances_matrix(y_true, y_predicted):
 
     return dist
 
-def nearest_hit_modified(hit, hits,
-                         silent = True,
-                         dist_hit = False,
-                         metric = 'euclidean'):   
- 
-    start_time = time.time()
+def convert_vector_to_matrix(vec, features, len_seq):
+    tracks = []
+    total = len(vec)
     
-    dist = distance.cdist(hits, hit, metric)
+    for x in range(total):
+        seq = np.reshape(vec[x], len_seq*features) 
+        tracks.append(seq)    
+    return tracks
 
-    # get the index of minimum distance
-    target_hit_index = np.argmin(dist)
+def convert_matrix_to_vec(mat, features):
+    lst = []
     
-    if silent is False:    
-        print("--- N_hits: %s" % hits.shape[0])
-        print("--- Hit index: %s" % target_hit_index)
-        print("--- " + str(metric) + " distance: " + str(dist[target_hit_index]))
-        print("--- time: %s seconds" % (time.time() - start_time))
+    rows = mat.shape[0]
+    cols = mat.shape[1]
     
-    # get hits coordinates 
-    real_hit = hits[target_hit_index, :]
+    mat = np.array(mat)
     
-    # removing the hit from bag
-    hits = np.delete(hits, target_hit_index, 0)
-    
-    if dist_hit is False:
-        return real_hit
-    else:
-        return real_hit, np.min(dist)  
+    for i in range(rows):
+        end_idx = 0
+        for j in range(0, cols, features):
+            end_idx = j+features
+            hit = mat[i, j:end_idx]
+            #lst.append(np.reshape(hit, features))
+            lst.append(hit)
+    return lst
+
+def to_frame(data):
+    return pd.DataFrame(data)
+
+
 
 def get_nearest_preds(y_true, y_predicted):
     new_pred = []
@@ -252,6 +254,7 @@ def get_nearest_preds(y_true, y_predicted):
         new_pred.append(nearest_hit)
 
     return np.array(new_pred).reshape(total, 3)
+
 
 ##########################################
 ####                                  ####                      
@@ -333,6 +336,7 @@ def conv_slice_xyz_to_rhoetaphi(df_in, n_hits = 5):
 def track_plot_xyz(list_of_df_in = [],
                    n_hits = 5,
                    cylindrical = False,
+                   auto_open=False,
                    **kwargs):
  
     # deep copy to avoid linking with the original dataframe addresss
@@ -470,7 +474,7 @@ def track_plot_xyz(list_of_df_in = [],
     #init_notebook_mode(connected=True)
     if kwargs.get('path'):
         path = kwargs.get('path')
-        fig.write_html(path, auto_open=True)  
+        fig.write_html(path, auto_open=auto_open)  
     
     return fig     
 #function to plot more than one dataframes
