@@ -115,7 +115,8 @@ def main():
     print('[Data] Predicting dataset with input ...', X_test_.shape)
     
     seq_len = num_hits - time_steps
-    pred_full_res = model.predict_full_sequences_nearest(X_test_, y_test_, seq_len)
+    #pred_full_res = model.predict_full_sequences_nearest(X_test_, y_test_, seq_len)
+    pred_full_res, correct = model.predict_full_sequences_nearest(X_test_, y_test, seq_len)
 
     predicted_nearest = convert_vector_to_matrix(pred_full_res, num_features, seq_len)
     predicted_nearest = to_frame(predicted_nearest)
