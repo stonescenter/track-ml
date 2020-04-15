@@ -5,7 +5,7 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "/data/track-ml/eramia/dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "filename": "/data/track-ml/eramia/dataset/eta-05_05.csv",
         "train_split": 0.80,
         "normalise": true,
         "cylindrical": false,

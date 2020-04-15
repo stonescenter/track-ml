@@ -37,6 +37,7 @@ class Dataset():
 		elif kind_normalization == KindNormalization.Zscore:
 			self.x_scaler = StandardScaler() # mean and standart desviation
 			self.y_scaler = StandardScaler() # mean and standart desviation
+			self.y_scaler_test = StandardScaler()
 			
 		'''
 				if normalise:            
@@ -47,6 +48,7 @@ class Dataset():
 		'''
 		self.start_hits = 9
 		self.interval = 11
+		self.decimals = 4
 
 		self.data = dataframe.iloc[:, self.start_hits:]
 		#self.self = 0
@@ -227,7 +229,9 @@ class Dataset():
 			x_data = pd.DataFrame(X)			
 			y_data = pd.DataFrame(Y)				
 
+		#return pd.DataFrame(x_data).round(self.decimals) , pd.DataFrame(y_data).round(self.decimals)
 		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
+
 
 	def get_testing_data(self, n_hit_in, n_hit_out, n_features, normalise=False):
 
@@ -249,12 +253,13 @@ class Dataset():
 			xscaled = self.x_scaler.fit_transform(X)
 			x_data = pd.DataFrame(xscaled)			
 
-			yscaled = self.y_scaler.fit_transform(Y)
+			yscaled = self.y_scaler_test.fit_transform(Y)
 			y_data = pd.DataFrame(yscaled)	
 		else:
 			x_data = pd.DataFrame(X)			
 			y_data = pd.DataFrame(Y)				
 
+		#return pd.DataFrame(x_data).round(self.decimals) , pd.DataFrame(y_data).round(self.decimals)
 		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
 
 	def get_test_data2(self, seq_len, normalise=False):
@@ -423,6 +428,9 @@ class Dataset():
 
 	def inverse_transform_y(self, data):
 		return self.y_scaler.inverse_transform(data)
+	
+	def inverse_transform_test_y(self, data):
+		return self.y_scaler_test.inverse_transform(data)		
 
 	def inverse_transform_x(self, data):
 		return self.x_scaler.inverse_transform(data)

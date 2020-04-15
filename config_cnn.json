@@ -1,20 +1,21 @@
 {
     "paths": {
+        "bin_dir": "/data/track-ml/eramia/compiled/",        
         "save_dir": "results",
         "log_dir": "logs"
     },
     "data": {
-        "filename": "/data/track-ml/eramia/10hits_without_etaphi_filter_pt_less_1.csv",
+        "filename": "/data/track-ml/eramia/dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
         "train_split": 0.80,
         "normalise": true,
-        "cylindrical": true,
+        "cylindrical": false,
         "num_hits": 10        
     },
     "training": {
         "epochs": 12,
         "batch_size": 18,
         "save_model": true,
-        "load_model": false,
+        "load_model": true,
         "use_gpu": true        
     },
     "model": {

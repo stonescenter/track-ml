@@ -109,7 +109,9 @@ def main():
     if loadModel == False:
         # if exist, please used the compiled model!
         if model.exist_model(model.save_fnameh5):
-            print("[Warning] Please there is a previous model compiled for %s use it" % data_file)
+            print("[Warning] Please there is a previous model compiled (%s) for %s file." 
+                % (model.save_fnameh5,data_file))
+
             return
 
         model.build_model()
@@ -140,13 +142,13 @@ def main():
 
     # convertimos a matriz do test em um vetor
     X_test_ = data.reshape3d(X_test, time_steps, num_features) 
-    y_test_ = convert_matrix_to_vec(y_test, num_features)
-    y_test_ = np.array(y_test_)
+    #y_test_ = convert_matrix_to_vec(y_test, num_features)
+    #y_test_ = np.array(y_test_)
 
     print('[Data] Predicting dataset with input ...', X_test_.shape)
     
     seq_len = num_hits - time_steps
-    pred_full_res = model.predict_full_sequences_nearest(X_test_, y_test_, seq_len)
+    pred_full_res, correct = model.predict_full_sequences_nearest(X_test_, y_test, seq_len)
 
     predicted_nearest = convert_vector_to_matrix(pred_full_res, num_features, seq_len)
     predicted_nearest = to_frame(predicted_nearest)
@@ -177,6 +179,9 @@ def main():
     print("\t Model saved   : ", model.save_fnameh5) 
     print("\t Coordenates   : ", coord) 
     print("\t Model stand   : ", model.normalise) 
+    print("\t Total correct : ", correct)
+    #taxa_acertos = [(correct*100)/total for x in range(0, len(correct))]
+    print("\t Total porcentage correct :", (correct*100)/len(X_test))
 
     y_test_orig = pd.DataFrame(y_test_orig)
     y_predicted_orig = pd.DataFrame(y_predicted_orig)

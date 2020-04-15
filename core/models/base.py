@@ -220,6 +220,10 @@ class BaseModel():
 
         pred_sequences = []
         
+        decimals = 4
+        y_true = y_true.round(decimals)
+        x_test = x_test.round(decimals)
+
         bag_of_hits = np.array(convert_matrix_to_vec(y_true, num_features))
 
         y_true = np.array(y_true)
@@ -237,11 +241,16 @@ class BaseModel():
                 begin = end
                 
                 y_pred = self.model.predict(curr_frame[np.newaxis,:,:])
+                y_pred = np.round(y_pred, decimals)
+                #y_pred = np.reshape(y_pred, (1, 3))
+
                 near_pred, idx = self.nearest_hit(y_pred, bag_of_hits, silent=True)
                 #bag_of_hits = np.delete(bag_of_hits, target_hit_index, 0)
-                
+                #print('pred %s  reshape %s near %s' % (y_pred, y_pred[0], near_pred))
+
                 #if np.logical_and(curr_hit, near_pred).all():
-                if np.array_equal(curr_hit, near_pred):
+                #if np.array_equal(curr_hit, near_pred):
+                if np.isclose(curr_hit, near_pred, atol=0.01).all():    
                     count_correct[i]=+1
                     
                 predicted.append(near_pred)
