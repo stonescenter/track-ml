@@ -16,7 +16,8 @@
         "batch_size": 18,
         "save_model": true,
         "load_model": false,
-        "use_gpu": true        
+        "use_gpu": true,
+        "show_metrics": false        
     },
     "model": {
         "name": "lstm",

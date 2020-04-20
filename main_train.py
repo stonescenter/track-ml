@@ -82,6 +82,7 @@ def main():
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
 
+
     if args.dataset is not None:
         data_file = args.dataset
         configs['data']['filename'] = data_file     
@@ -109,7 +110,8 @@ def main():
         return
 
     loadModel = configs['training']['load_model']
-    
+    show_metrics = configs['training']['show_metrics']
+
     if loadModel == False:
         # if exist, please used the compiled model!
         if model.exist_model(model.save_fnameh5):
@@ -127,8 +129,8 @@ def main():
             epochs = configs['training']['epochs'],
             batch_size = configs['training']['batch_size']
         )
-
-        evaluate_training(history, output_path)
+        if show_metrics:
+            evaluate_training(history, output_path)
 
     elif loadModel == True:       
         if not model.load_model():
