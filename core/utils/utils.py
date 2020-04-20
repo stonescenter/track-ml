@@ -550,7 +550,8 @@ def track_plot_list(list_of_df = [], **kwargs):
     
     for i in range(len_list_df):
         try:
-            df_name = str(list_of_df[i].name)
+            #df_name = str(list_of_df[i].name)
+            df_name = str(list_of_df[i].columns.name)
         except:
             df_name = 'track[' + str(i) + ']'
             warnings.warn('For a better visualization, set the name of dataframe to plot:'
