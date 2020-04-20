@@ -262,6 +262,9 @@ def get_nearest_preds(y_true, y_predicted):
 ####                                  ####
 ##########################################
 
+pivot = 11
+shift = 1
+
 def plot_distances(d1, d2, save_to):
     
     sns.set(rc={"figure.figsize": (14, 10)})

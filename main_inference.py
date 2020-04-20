@@ -93,9 +93,10 @@ def main():
     
     if loadModel:       
         if not model.load_model():
-            print ('[Error] please change the config file : load_model')
+            print('[Error] please change the config file : load_model')
             return
     elif not loadModel:
+        print('[Error] this scripts don´t allow train models.')
         return
 
     # prepare data set
@@ -123,8 +124,8 @@ def main():
     
     # we need to transform to original data
     if normalise:
-        y_test_orig = data.inverse_transform_y(y_test)
-        y_predicted_orig = data.inverse_transform_y(predicted_nearest)
+        y_test_orig = data.inverse_transform_test_y(y_test)
+        y_predicted_orig = data.inverse_transform_test_y(predicted_nearest)
     else:
         y_test_orig = y_test
         y_predicted_orig = predicted_nearest
@@ -146,7 +147,9 @@ def main():
     print("\t Tracks        : ", len(X_test))
     print("\t Model saved   : ", model.save_fnameh5) 
     print("\t Coordenates   : ", coord) 
-    print("\t Model stand   : ", model.normalise) 
+    print("\t Model stand   : ", model.normalise)
+    print("\t Total correct : ", correct)
+    print("\t Total porcentage correct :", (correct*100)/len(X_test)) 
 
     y_test_orig = pd.DataFrame(y_test_orig)
     y_predicted_orig = pd.DataFrame(y_predicted_orig)
@@ -185,7 +188,7 @@ def main():
         x_true.to_csv(os.path.join(output_path, 'x_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
 
-    print('[Output] All results saved at %s directory ' % output_path)
+    print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)
 
 if __name__=='__main__':
     main()

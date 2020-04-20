@@ -1,0 +1,60 @@
+{
+    "paths": {
+        "bin_dir": "compiled",
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {
+        "filename": "./dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "cylindrical": false,
+        "num_hits": 10
+    },
+    "training": {
+        "epochs": 5,
+        "batch_size": 18,
+        "save_model": true,
+        "load_model": true,
+        "use_gpu": true        
+    },
+    "model": {
+        "name": "lstm",
+        "loss": "mse",
+        "optimizer": "rmsprop",
+        "layers": [
+            {
+                "type": "lstm",
+                "neurons": 400,
+                "input_timesteps": 4,
+                "input_features": 3,
+                "return_seq": true
+            },
+            {
+                "type": "dropout",
+                "rate": 0.25
+            },
+            {
+                "type": "lstm",
+                "neurons": 400,
+                "input_timesteps": 4,
+                "input_features": 3,
+                "return_seq": false
+            },
+            {
+                "type": "dropout",
+                "rate": 0.25
+            }, 
+            {
+                "type": "dense",
+                "neurons": 30,
+                "activation": "relu"
+            },              
+            {
+                "type": "dense",
+                "neurons": 3,
+                "activation": "linear"
+            }
+        ]
+    }
+}

@@ -280,7 +280,7 @@ class BaseModel():
         target_hit_index = np.argmin(dist)
         
         if silent is False:    
-            print("--- N_hits: %s" % hits.shape[0])
+            print("--- N_hits: %s" % len(hits))
             print("--- Hit index: %s" % target_hit_index)
             print("--- " + str(metric) + " distance: " + str(dist[target_hit_index]))
             print("--- time: %s seconds" % timer.stop())

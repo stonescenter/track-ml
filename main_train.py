@@ -60,9 +60,13 @@ def main():
     configs = json.load(open(args.config, 'r'))
 
     # create defaults dirs
+    output_bin = configs['paths']['bin_dir']
     output_path = configs['paths']['save_dir']
     output_logs = configs['paths']['log_dir']
     data_file = configs['data']['filename']
+
+    if os.path.isdir(output_bin) == False:
+        os.mkdir(output_bin)
 
     if os.path.isdir(output_path) == False:
         os.mkdir(output_path)
@@ -155,8 +159,8 @@ def main():
     
     # we need to transform to original data
     if normalise:
-        y_test_orig = data.inverse_transform_y(y_test)
-        y_predicted_orig = data.inverse_transform_y(predicted_nearest)
+        y_test_orig = data.inverse_transform_test_y(y_test)
+        y_predicted_orig = data.inverse_transform_test_y(predicted_nearest)
     else:
         y_test_orig = y_test
         y_predicted_orig = predicted_nearest
@@ -180,7 +184,6 @@ def main():
     print("\t Coordenates   : ", coord) 
     print("\t Model stand   : ", model.normalise) 
     print("\t Total correct : ", correct)
-    #taxa_acertos = [(correct*100)/total for x in range(0, len(correct))]
     print("\t Total porcentage correct :", (correct*100)/len(X_test))
 
     y_test_orig = pd.DataFrame(y_test_orig)
@@ -220,7 +223,7 @@ def main():
         x_true.to_csv(os.path.join(output_path, 'x_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
 
-    print('[Output] All results saved at %s directory ' % output_path)
+    print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)    
 
 
 if __name__=='__main__':
