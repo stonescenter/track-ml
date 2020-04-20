@@ -22,6 +22,7 @@ from sklearn.metrics import pairwise_distances
 from sklearn.metrics import pairwise_distances_argmin
 
 from .transformation import *
+import warnings
 
 class Timer():
  
@@ -402,7 +403,8 @@ def track_plot_xyz(list_of_df_in = [],
     
     for i in range(len_list_df):
         try:
-            df_name = str(list_of_df[i].name)
+            #df_name = str(list_of_df[i].name)
+            df_name = str(list_of_df[i].columns.name)
             #warnings.warn(df_name, RuntimeWarning, stacklevel=2)
         except:
             df_name = 'track[' + str(i) + ']'
