@@ -295,4 +295,7 @@ class BaseModel():
         if dist_hit is False:
             return real_hit, target_hit_index
         else:
-            return real_hit, target_hit_index, np.min(dist) 
+            return real_hit, target_hit_index, np.min(dist)
+
+    def rmse(y_true, y_pred):
+        return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1)) 

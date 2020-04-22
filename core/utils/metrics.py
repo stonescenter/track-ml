@@ -37,9 +37,15 @@ def evaluate_model(history, model, x, y, save_to):
 def evaluate_training(history, save_to):
     history = history.history
 
-    print(history.keys())
-    print('[Ouput] Validation accuracy: {acc}, loss: {loss}'.format(
-        acc=history['val_acc'][-1], loss=history['val_loss'][-1]))
+    #print('Validation accuracy: {acc}, loss: {loss}'.format(
+    #    acc=history['val_acc'][-1], loss=history['val_loss'][-1]))
+
+    report_string = 'accuracy: {acc}, loss: {loss}, val_acc: {val_acc}, val_loss: {val_loss}'.format(
+        acc=history['val_acc'][-1],
+        loss=history['val_loss'][-1],
+        val_acc=history['val_acc'][-1],
+        val_loss=history['val_loss'][-1])
+    print(report_string)
 
     # summarize history for accuracy
     plt.plot(history['acc'])
@@ -49,7 +55,7 @@ def evaluate_training(history, save_to):
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
 
-    save_fname = os.path.join(save_to, 'eval-accuracy.png') 
+    save_fname = os.path.join(save_to, 'evaluation-metrics.png') 
     plt.savefig(save_fname)
     plt.show()
     # summarize history for loss
@@ -60,12 +66,13 @@ def evaluate_training(history, save_to):
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    save_fname = os.path.join(save_to, 'eval-loss.png') 
+    plt.legend(['train', 'test val'], loc='upper left')
+    save_fname = os.path.join(save_to, 'evaluation-loss.png') 
     plt.savefig(save_fname)
     plt.show()    
 
-    print('[Output] resulta saved at %s', save_fname)
+    print('[Output] Metrics saved at %s', save_fname)
+    return report_string
 
 def calc_score(y_true, y_predicted, report=False):
 

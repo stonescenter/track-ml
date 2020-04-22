@@ -8,19 +8,21 @@
         "filename": "/data/track-ml/eramia/dataset/eta-05_05.csv",
         "train_split": 0.80,
         "normalise": true,
-        "cylindrical": false,
+        "cylindrical": true,
         "num_hits": 10
     },
     "training": {
-        "epochs": 5,
-        "batch_size": 18,
+        "epochs": 10,
+        "batch_size": 6,
         "save_model": true,
-        "load_model": true,
-        "use_gpu": true        
+        "load_model": false,
+        "use_gpu": true,
+        "show_metrics": false           
     },
     "model": {
         "name": "lstm",
         "loss": "mse",
+        "metrics": ["mae","acc"],        
         "optimizer": "rmsprop",
         "layers": [
             {
@@ -32,7 +34,7 @@
             },
             {
                 "type": "dropout",
-                "rate": 0.25
+                "rate": 0.1
             },
             {
                 "type": "lstm",
@@ -43,11 +45,11 @@
             },
             {
                 "type": "dropout",
-                "rate": 0.25
+                "rate": 0.1
             }, 
             {
                 "type": "dense",
-                "neurons": 10,
+                "neurons": 30,
                 "activation": "relu"
             },              
             {

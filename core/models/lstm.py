@@ -50,7 +50,8 @@ class ModelLSTM(BaseModel):
                 self.model.add(Activation('linear'))
         
         print(self.model.summary())
-        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=['accuracy'])       
+        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
+
         print('[Model] Model Compiled with structure:', self.model.inputs)
         self.save_architecture(self.save_fname)     
         timer.stop()
@@ -99,7 +100,7 @@ class ModelLSTMCuDnnParalel(BaseModel):
                 output = Dropout(0.5)(output)
 
         self.model = Model(inputs=[first_input, second_input], outputs=output)
-        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=['accuracy'])
+        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
         print(self.model.summary())
         print('[Model] Model Compiled with structure:', self.model.inputs)      
         self.save_architecture(self.save_fname) 
@@ -148,7 +149,7 @@ class ModelLSTMParalel(BaseModel):
                 output = Dropout(dropout_rate)(output)
 
         self.model = Model(inputs=[first_input, second_input], outputs=output)
-        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=['accuracy'])
+        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
         print(self.model.summary())
         print('[Model] Model Compiled with structure:', self.model.inputs)
         self.save_architecture(self.save_fname) 

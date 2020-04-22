@@ -53,6 +53,10 @@ class Dataset():
 		self.data = dataframe.iloc[:, self.start_hits:]
 		#self.self = 0
 
+		if cylindrical:
+			self.coord_name = 'cylin'
+		else:
+			self.coord_name = 'xyz'
 		self.cylindrical = cylindrical
 
 		begin_coord = 0
@@ -94,6 +98,7 @@ class Dataset():
 		print("[Data] Data set shape ", self.data.shape)		
 		print("[Data] Data train shape ", self.data_train.shape)		
 		print("[Data] Data test shape ", self.data_test.shape)
+		print("[Data] Data coordinates ", self.coord_name)
 
 	def prepare_training_data(self, feature_type, normalise=True, cylindrical=False):
 

@@ -12,8 +12,8 @@
         "num_hits": 10
     },
     "training": {
-        "epochs": 5,
-        "batch_size": 18,
+        "epochs": 10,
+        "batch_size": 36,
         "save_model": true,
         "load_model": false,
         "use_gpu": true,
@@ -22,6 +22,7 @@
     "model": {
         "name": "lstm",
         "loss": "mse",
+        "metrics": ["mae","acc"],
         "optimizer": "rmsprop",
         "layers": [
             {
