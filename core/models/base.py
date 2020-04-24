@@ -38,6 +38,8 @@ class BaseModel():
         self.name = configs['model']['name']
         self.normalise = configs['data']['normalise']
         self.cylindrical = configs['data']['cylindrical']
+        self.epochs = configs['training']['epochs']
+        self.batch_size = configs['training']['batch_size']
 
         path_to, filename = os.path.split(configs['data']['filename'])
         #print(get_unique_name(filename))
@@ -54,9 +56,11 @@ class BaseModel():
         else:
             coord = 'xyz'
 
+        # set unique Id identification
         self.save_fnameh5 = os.path.join(configs['paths']['bin_dir'], 
-            'model-%s-%s-coord-%s-normalise-%s.h5' % (self.name, self.encryp_ds_name, coord,
-                str(self.normalise).lower() ))
+            'model-%s-%s-coord-%s-normalise-%s-epochs-%s-batch-%s.h5' % (
+                self.name, self.encryp_ds_name, coord,
+                str(self.normalise).lower(), self.epochs, self.batch_size))
         print(self.save_fnameh5)
 
         self.save_fname = os.path.join(configs['paths']['save_dir'], 'architecture-%s.png' % self.name)

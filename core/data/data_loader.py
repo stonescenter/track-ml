@@ -255,14 +255,16 @@ class Dataset():
 		x_data, y_data = 0,0
 		# normalization just of features.
 		if normalise:
-			xscaled = self.x_scaler.fit_transform(X)
-			x_data = pd.DataFrame(xscaled)			
+			# X must be scaled with train scaled parameters according to literature
+			xscaled = self.x_scaler.transform(X)
+			x_data = pd.DataFrame(xscaled)
 
-			yscaled = self.y_scaler_test.fit_transform(Y)
-			y_data = pd.DataFrame(yscaled)	
+			# no scaled Y
+			#yscaled = self.y_scaler_test.fit_transform(Y)
+			y_data = pd.DataFrame(Y)
 		else:
-			x_data = pd.DataFrame(X)			
-			y_data = pd.DataFrame(Y)				
+			x_data = pd.DataFrame(X)
+			y_data = pd.DataFrame(Y)
 
 		#return pd.DataFrame(x_data).round(self.decimals) , pd.DataFrame(y_data).round(self.decimals)
 		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
@@ -433,9 +435,16 @@ class Dataset():
 
 	def inverse_transform_y(self, data):
 		return self.y_scaler.inverse_transform(data)
-	
+
 	def inverse_transform_test_y(self, data):
-		return self.y_scaler_test.inverse_transform(data)		
+		return pd.DataFrame(self.y_scaler_test.inverse_transform(data))
 
 	def inverse_transform_x(self, data):
 		return self.x_scaler.inverse_transform(data)
+
+	def scale_parameters(self):
+		return self.x_scaler.mean_,  self.x_scaler.var_, self.y_scaler.mean_, self.y_scaler.var_
+
+	def scale_data(self, array, mean,stds):
+		return (array-mean)/stds
+
