@@ -5,25 +5,29 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "/data/track-ml/eramia/dataset/eta-05_05.csv",
-        "train_split": 0.80,
+        "filename": "/data/track-ml/eramia/dataset/eta_n0.5-0.5_phi_n0.5-0.5.csv",
+        "train_split": 0.70,
         "normalise": true,
-        "cylindrical": true,
+        "cylindrical": false,
         "num_hits": 10
     },
     "training": {
-        "epochs": 10,
-        "batch_size": 6,
+        "epochs": 30,
+        "batch_size": 64,
         "save_model": true,
-        "load_model": false,
+        "load_model": true,
         "use_gpu": true,
-        "show_metrics": false           
+        "show_metrics": false
+    },
+    "testing": {
+        "type_prediction" : "normal",
+         "normalise": false
     },
     "model": {
         "name": "lstm",
         "loss": "mse",
-        "metrics": ["mae","acc"],        
-        "optimizer": "rmsprop",
+        "metrics": ["mae","acc"],
+        "optimizer": "adam",
         "layers": [
             {
                 "type": "lstm",
@@ -34,7 +38,7 @@
             },
             {
                 "type": "dropout",
-                "rate": 0.1
+                "rate": 0.25
             },
             {
                 "type": "lstm",
@@ -45,11 +49,11 @@
             },
             {
                 "type": "dropout",
-                "rate": 0.1
+                "rate": 0.25
             }, 
             {
                 "type": "dense",
-                "neurons": 30,
+                "neurons": 18,
                 "activation": "relu"
             },              
             {

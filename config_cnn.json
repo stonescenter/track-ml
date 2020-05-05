@@ -1,31 +1,37 @@
 {
     "paths": {
-        "bin_dir": "/data/track-ml/eramia/compiled/",        
+        "bin_dir": "/data/track-ml/eramia/compiled/",
         "save_dir": "results",
         "log_dir": "logs"
     },
     "data": {
-        "filename": "/data/track-ml/eramia/dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "filename": "/data/track-ml/eramia/dataset/eta-05_05.csv",
         "train_split": 0.80,
         "normalise": true,
         "cylindrical": false,
         "num_hits": 10        
     },
     "training": {
-        "epochs": 12,
+        "epochs": 10,
         "batch_size": 18,
         "save_model": true,
         "load_model": true,
-        "use_gpu": true        
+        "use_gpu": true,
+        "show_metrics": false
+    },
+    "testing": {
+        "type_prediction" : "normal",
+        "normalise": false
     },
     "model": {
         "name": "cnn",
         "loss": "mse",
+        "metrics": ["mae","acc"],
         "optimizer": "adam",
         "layers": [
             {
                 "type": "cnn",
-                "filters": 64,
+                "filters": 32,
                 "kernel_size": 2,
                 "activation": "relu",
                 "input_timesteps": 4,
@@ -40,7 +46,7 @@
             }, 
             {
                 "type": "dense",
-                "neurons": 30,
+                "neurons": 18,
                 "activation": "relu"
             },              
             {
