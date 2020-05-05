@@ -75,6 +75,7 @@ def main():
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
+    type_pred = configs['testing']['type_prediction']
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -99,36 +100,77 @@ def main():
         print('[Error] this scripts don´t allow train models.')
         return
 
+
     # prepare data set
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
+    # we need to load a previous distribution of training data. If we have testing stage divided
+    x_scaler, y_scaler = data.load_scale_param(output_path)
+
     X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
-                                 n_features=num_features, normalise=normalise)
+                                       n_features=num_features, normalise=False,
+                                       xscaler=x_scaler, yscaler=y_scaler)
+
+    # a short dataset
+    X_test = X_test.iloc[0:1000,]
+    y_test = y_test[0:1000]
 
     print('[Data] shape data X_test.shape:', X_test.shape)
     print('[Data] shape data y_test.shape:', y_test.shape)
 
     # convertimos a matriz do test em um vetor
-    X_test_ = data.reshape3d(X_test, time_steps, num_features) 
-    y_test_ = convert_matrix_to_vec(y_test, num_features)
-    y_test_ = np.array(y_test_)
+    X_test_ = data.reshape3d(X_test, time_steps, num_features)
+    y_test_ = data.reshape3d(y_test, 6, num_features)
+
 
     print('[Data] Predicting dataset with input ...', X_test_.shape)
     
     seq_len = num_hits - time_steps
     #pred_full_res = model.predict_full_sequences_nearest(X_test_, y_test_, seq_len)
-    pred_full_res, correct = model.predict_full_sequences_nearest(X_test_, y_test, seq_len)
+    #pred_full_res, correct = model.predict_full_sequences_nearest(X_test_, y_test, seq_len)
 
-    predicted_nearest = convert_vector_to_matrix(pred_full_res, num_features, seq_len)
-    predicted_nearest = to_frame(predicted_nearest)
+    correct = []
+    y_pred = None
+    if cylindrical:
+        if type_pred == "normal":
+            y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=True)
+        elif type_pred == "nearest":                 
+            # get data in coord cartesian
+            data_tmp = Dataset(path, split_data, False, num_hits, KindNormalization.Zscore)
+
+            X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
+                                             n_features=num_features, normalise=False)        
+            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, BagOfHits.Layer, y_test_aux, seq_len, 
+                                                                 normalise=True, cylindrical=cylindrical,
+                                                                 verbose=False)
+    else:
+        if type_pred == "normal":
+            y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=True)
+        elif type_pred == "nearest": 
+            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, BagOfHits.Layer, None, seq_len, 
+                                                             normalise=True, cylindrical=False,
+                                                             verbose=False)
+        else:
+            print('no algorithm defined to predict')
+
+    print('[Data] shape y_test ', y_test.shape)
+    print('[Data] shape y_predicted ', y_pred.shape)   
+
+    y_predicted = convert_vector_to_matrix(y_pred, num_features, seq_len)
+    y_predicted = to_frame(y_predicted)
+
+ 
     
     # we need to transform to original data
+    # no more supported
+    '''
     if normalise:
         y_test_orig = data.inverse_transform_test_y(y_test)
         y_predicted_orig = data.inverse_transform_test_y(predicted_nearest)
     else:
         y_test_orig = y_test
         y_predicted_orig = predicted_nearest
+    '''
 
     if cylindrical:
         coord = 'cylin'
@@ -137,7 +179,7 @@ def main():
 
     # save results in a file    
     orig_stdout = sys.stdout
-    f = open('results/results.txt', 'a')
+    f = open('results/results-test.txt', 'a')
     sys.stdout = f        
 
     print("[Output] Results ")
@@ -151,41 +193,41 @@ def main():
     print("\t Total correct : ", correct)
     print("\t Total porcentage correct :", (correct*100)/len(X_test)) 
 
-    y_test_orig = pd.DataFrame(y_test_orig)
-    y_predicted_orig = pd.DataFrame(y_predicted_orig)
+    
+    # metricas para nearest
+    _,_,_,_,result = calc_score(data.reshape2d(y_test, 1),
+                        data.reshape2d(y_predicted, 1), report=True)
+    print(result)
 
-    # calculing scores
-    result = calc_score(data.reshape2d(y_test_orig, 1),
-                        data.reshape2d(y_predicted_orig, 1), report=False)
+    calc_score_layer(y_test, y_predicted, n_features=3)
 
-    r2, rmse, rmses = evaluate_forecast_seq(y_test_orig, y_predicted_orig)
-    summarize_scores(r2, rmse, rmses)
+    mses, rmses, r2s = calc_score_layer_axes(y_test, y_predicted)
+    summarize_scores_axes(mses, rmses, r2s)
 
     sys.stdout = orig_stdout
     f.close()    
 
-    print('[Data] shape y_test_orig ', y_test_orig.shape)
-    print('[Data] shape y_predicted_orig ', y_predicted_orig.shape)
+
 
     # call this function againt with normalise False
-    x_true, y_true = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
-                                     n_features=num_features, normalise=False)
+    #x_true, y_true = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
+    #                                 n_features=num_features, normalise=False)
 
     if cylindrical:
 
-        y_test_orig.to_csv(os.path.join(output_path, 'y_true_%s_cylin.csv' % configs['model']['name']),
+        y_test.to_csv(os.path.join(output_path, 'y_true_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
-        y_predicted_orig.to_csv(os.path.join(output_path, 'y_pred_%s_cylin.csv' % configs['model']['name']),
+        y_predicted.to_csv(os.path.join(output_path, 'y_pred_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
-        x_true.to_csv(os.path.join(output_path, 'x_true_%s_cylin.csv' % configs['model']['name']),
+        X_test.to_csv(os.path.join(output_path, 'x_true_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
     else:
 
-        y_test_orig.to_csv(os.path.join(output_path, 'y_true_%s_xyz.csv' % configs['model']['name']),
+        y_test.to_csv(os.path.join(output_path, 'y_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
-        y_predicted_orig.to_csv(os.path.join(output_path, 'y_pred_%s_xyz.csv' % configs['model']['name']),
+        y_predicted.to_csv(os.path.join(output_path, 'y_pred_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
-        x_true.to_csv(os.path.join(output_path, 'x_true_%s_xyz.csv' % configs['model']['name']),
+        X_test.to_csv(os.path.join(output_path, 'x_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
 
     print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)
