@@ -2,6 +2,7 @@ __author__ = "Steve Ataucuri"
 __copyright__ = "Sprace.org.br"
 __version__ = "1.0.0"
 
+import os
 import numpy as np
 import pandas as pd
 
@@ -238,7 +239,7 @@ class Dataset():
 		return pd.DataFrame(x_data) , pd.DataFrame(y_data)
 
 
-	def get_testing_data(self, n_hit_in, n_hit_out, n_features, normalise=False):
+	def get_testing_data(self, n_hit_in, n_hit_out, n_features, normalise=False, xscaler=None, yscaler=None):
 
 		X , Y = [],[]
 
@@ -254,14 +255,40 @@ class Dataset():
 
 		x_data, y_data = 0,0
 		# normalization just of features.
-		if normalise:
+
+		if normalise and xscaler is None:
 			# X must be scaled with train scaled parameters according to literature
+			# must be transform data with previous mean, std
 			xscaled = self.x_scaler.transform(X)
 			x_data = pd.DataFrame(xscaled)
 
 			# no scaled Y
 			#yscaled = self.y_scaler_test.fit_transform(Y)
 			y_data = pd.DataFrame(Y)
+
+		elif normalise and (xscaler is not None or yscaler is not None):
+			print('not is none')
+			# we load a previous scaler mean and std
+			self.x_scaler = xscaler
+			self.y_scaler = yscaler
+
+			xscaled = self.x_scaler.fit_transform(X)
+			x_data = pd.DataFrame(xscaled)
+
+			# no scaled Y
+			#yscaled = self.y_scaler_test.fit_transform(Y)
+			y_data = pd.DataFrame(Y)
+
+		elif not normalise and (xscaler is not None or yscaler is not None):
+			print('normalise false and is none')
+			# we load a previous scaler mean and std
+			self.x_scaler = xscaler
+			self.y_scaler = yscaler
+
+			x_data = pd.DataFrame(X)
+			# no scaled Y
+			#yscaled = self.y_scaler_test.fit_transform(Y)
+			y_data = pd.DataFrame(Y)			
 		else:
 			x_data = pd.DataFrame(X)
 			y_data = pd.DataFrame(Y)
@@ -448,3 +475,34 @@ class Dataset():
 	def scale_data(self, array, mean,stds):
 		return (array-mean)/stds
 
+	def save_scale_param(self, path):
+	    #return data.x_scaler.mean_,  data.x_scaler.var_, data.y_scaler.mean_, data.y_scaler.var_
+	    save(os.path.join(path, 'x_scaler_scale.npy'), np.asarray(self.x_scaler.scale_))
+	    save(os.path.join(path, 'x_scaler_mean.npy'), np.asarray(self.x_scaler.mean_))
+	    save(os.path.join(path, 'x_scaler_var.npy'), np.asarray(self.x_scaler.var_))
+	    
+	    save(os.path.join(path, 'y_scaler_scale.npy'), np.asarray(self.y_scaler.scale_))    
+	    save(os.path.join(path, 'y_scaler_mean.npy'), np.asarray(self.y_scaler.mean_))
+	    save(os.path.join(path, 'y_scaler_var.npy'), np.asarray(self.y_scaler.var_))
+
+	def load_scale_param(self, path):
+	    x_scaler = StandardScaler()
+	    y_scaler = StandardScaler()
+
+	    x_scale = np.load(path + '/x_scaler_scale.npy')    
+	    x_mean = np.load(path + '/x_scaler_mean.npy')
+	    x_var = np.load(path + '/x_scaler_var.npy')
+	    
+	    y_scale = np.load(path + '/y_scaler_scale.npy')
+	    y_mean = np.load(path + '/y_scaler_mean.npy')
+	    y_var = np.load(path + '/y_scaler_var.npy')
+	    
+	    x_scaler.scale_ = x_scale
+	    x_scaler.mean_ = x_mean
+	    x_scaler.var_ = x_var
+	    
+	    y_scaler.scale_ = y_scale
+	    y_scaler.mean_ = y_mean
+	    y_scaler.var_ = y_var
+	    
+	    return x_scaler, y_scaler
