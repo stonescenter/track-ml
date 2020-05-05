@@ -77,19 +77,21 @@ def evaluate_training(history, save_to):
 def calc_score(y_true, y_predicted, report=False):
 
     r2 = r2_score(y_true, y_predicted)
+    mse = mean_squared_error(y_true, y_predicted)
     rmse = sqrt(mean_squared_error(y_true, y_predicted))
     mae = mean_absolute_error(y_true, y_predicted)
-    
+
     report_string = ""
     report_string += "---Regression Scores--- \n"
     report_string += "\tR_2 statistics        (R2)  = " + str(round(r2,3)) + "\n"
+    report_string += "\tMean Square Error     (MSE) = " + str(round(mse,3)) + "\n"
     report_string += "\tRoot Mean Square Error(RMSE) = " + str(round(rmse,3)) + "\n"
     report_string += "\tMean Absolute Error   (MAE) = " + str(round(mae,3)) + "\n"
 
     if report:
-        print(report_string)
-
-    return report_string
+        return r2, mse, rmse, mae, report_string
+    else:
+        return r2, mse, rmse, mae
 
 def evaluate_forecast(y_true, y_predicted):
     '''
@@ -182,8 +184,81 @@ def evaluate_forecast_seq(y_true, y_predicted, features=3):
     rmst = sqrt(s/(cols*rows))
 
     return r2s, rmst, rmses
+
 def summarize_scores(r2, score, scores):
     s_scores = ', '.join(['%.2f' % s for s in scores])
     s_r2 = ', '.join(['%.2f' % s for s in r2])
     #print('RMSE:\t\t[%.3f] \nRMSE features: \t[%s] \nR^2  features:\t[%s] ' % (score, s_scores, s_r2))
     print('\tR^2  features:\t[%s] \n\tRMSE average:\t\t[%.3f] \n\tRMSE vector: \t[%s] ' % (s_r2, score, s_scores))
+
+def calc_score_layer(y_true, y_pred, n_features):
+    '''
+        this function calculate the geral score by layer
+    '''
+    rows = y_true.shape[0]
+    cols = y_true.shape[1]
+    begin, end = 0, 0
+    layer = 5
+    for i in range(0, cols, n_features):
+        end = i + n_features
+        layer_true = y_true.iloc[0:,begin:end]
+        layer_pred = y_pred.iloc[0:,begin:end]
+        begin = end
+        
+        r2, mse, rmse, mae, result = calc_score1(data.reshape2d(layer_true, 1),
+                            data.reshape2d(layer_pred, 1), report=True)   
+        
+        print('layer ', layer)
+        print(result)
+        layer+=1
+
+def calc_score_layer_axes(y_true, y_predicted, features=3):
+    '''
+        This func calculate the axes score by layer
+
+        Return 
+            receive a sequence by track and calculate the score by layer
+            score  : return the score total with RMSE
+            scores : return the score RMSE for each features
+    '''
+    mses = []
+    rmses = []
+    r2s = []
+    
+    y_true = np.array(y_true)
+    y_predicted = np.array(y_predicted)
+    
+    rows = y_true.shape[0]
+    cols = y_true.shape[1]
+
+    mse_x, mse_y, mse_z = 0,0,0
+    r2_x, r2_y, r2_z = 0,0,0
+    counter = 0
+    for j in range(0, cols, features):
+        x, y, z = (j + 0),  (j + 1), (j + 2)
+        # calculate by column
+        mse_x+= mean_squared_error(y_true[:,x], y_predicted[:,x])
+        mse_y+= mean_squared_error(y_true[:,y], y_predicted[:,y])
+        mse_z+= mean_squared_error(y_true[:,z], y_predicted[:,z])
+
+        # adding mse by layer
+        mses.append([mse_x, mse_y, mse_z])
+        rmses.append([sqrt(mse_x), sqrt(mse_y), sqrt(mse_z)])
+        
+        r2_x+= r2_score(y_true[:,x], y_predicted[:,x])
+        r2_y+= r2_score(y_true[:,y], y_predicted[:,y])
+        r2_z+= r2_score(y_true[:,z], y_predicted[:,z])
+        r2s.append([r2_x, r2_y, r2_z])
+        
+        counter+=1     
+ 
+    return mses, rmses, r2s
+
+def summarize_scores_axes(mses, rmses, r2s):
+    
+    counter = 0
+    for mse, rmse in zip(mses,rmses):
+        print('layer %s' % counter)
+        print('\tMSE:[%.2f, %.2f, %.2f]' % (mse[0], mse[1], mse[2]))
+        print('\tRMSE:[%.2f, %.2f, %.2f]' % (rmse[0], rmse[1], rmse[2]))
+        counter+=1
