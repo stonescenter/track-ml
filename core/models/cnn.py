@@ -54,7 +54,7 @@ class ModelCNN(BaseModel):
                 self.model.add(Activation('linear'))
         
         print(self.model.summary())
-        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=['accuracy'])       
+        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])       
         print('[Model] Model Compiled with structure:', self.model.inputs)
         self.save_architecture(self.save_fname)     
         timer.stop()
