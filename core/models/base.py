@@ -8,6 +8,7 @@ import uuid
 import shortuuid
 import numpy as np
 import datetime as dt
+from enum import Enum
 
 from scipy.spatial import distance
 
@@ -31,6 +32,11 @@ def get_unique_name(name):
 def get_decryp_name(key):
     dec = shortuuid.decode(key)
     return dec
+
+class BagOfHits(Enum):
+    All=1,
+    Track=2,
+    Layer=3
 
 class BaseModel():
     def __init__(self, configs):
@@ -113,8 +119,8 @@ class BaseModel():
         #print('[Model] Shape of data train: ', x.shape) 
         #save_fname = os.path.join(save_dir, '%s-e%s.h5' % (dt.datetime.now().strftime('%d%m%Y-%H%M%S'), str(epochs)))
         callbacks = [
-            EarlyStopping(monitor='val_loss', patience=2),
-            ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', save_best_only=True)
+            EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50),
+            ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
         ]
         history = self.model.fit(
             x,
@@ -182,7 +188,7 @@ class BaseModel():
                 curr_frame = np.insert(curr_frame, [window_size-2], predicted[-1], axis=0)
             prediction_seqs.append(predicted)
         return prediction_seqs
- 
+    '''
     def predict_full_sequences(self, x_test, y_true, hits_len):
 
         timer = Timer()
@@ -212,63 +218,220 @@ class BaseModel():
         timer.stop()
 
         return pred_sequences
-
-    def predict_full_sequences_nearest(self, x_test, y_true, hits_len=6, num_features=3):
-        #Shift the window by 1 new prediction each time, re-run predictions on new window
+    '''
+    def predict_full_sequences(self, x_test, data, num_hits=6, normalise=False, tol=0.1):
+        '''
+            x_test: input data
+            normalise: say input data must be scaled 
+        '''
         timer = Timer()
-        timer.start()       
-
-        print('[Model] Predicting Sequences with Nearest Started')
+        timer.start() 
+        print('[Model] Predicting Sequences Started')
 
         total = len(x_test)
 
         pred_sequences = []
-        
-        decimals = 4
-        y_true = y_true.round(decimals)
-        x_test = x_test.round(decimals)
 
-        bag_of_hits = np.array(convert_matrix_to_vec(y_true, num_features))
+        count_correct = np.zeros(num_hits)
 
-        y_true = np.array(y_true)
-        count_correct = np.zeros(hits_len)
-        
-        for j in range(total):
+        for j in range(total):       
             curr_frame = x_test[j]
-            curr_track = y_true[j]
             predicted = []
-            begin = 0
-            
-            for i in range(hits_len):
-                end = begin+num_features
-                curr_hit = curr_track[begin:end]
-                begin = end
+            for i in range(num_hits):
+
+                if normalise:
+                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1,12)))
+                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values.flatten())
+                    curr_frame_orig = np.reshape(curr_frame_orig, (4,3))
+                    curr_frame = np.reshape(curr_frame, (4,3))
+                else:
+                    curr_frame = curr_frame
+                    curr_frame_orig = curr_frame
+                                
+                pred = self.model.predict(curr_frame[np.newaxis,:,:])                         
                 
-                y_pred = self.model.predict(curr_frame[np.newaxis,:,:])
-                y_pred = np.round(y_pred, decimals)
-                #y_pred = np.reshape(y_pred, (1, 3))
+                pred = np.reshape(pred, (1, 3))
+                if normalise:
+                    pred = data.inverse_transform_y(pred)
+                else:
+                    pred = pred
 
-                near_pred, idx = self.nearest_hit(y_pred, bag_of_hits, silent=True)
-                #bag_of_hits = np.delete(bag_of_hits, target_hit_index, 0)
-                #print('pred %s  reshape %s near %s' % (y_pred, y_pred[0], near_pred))
+                                    
+                pred = np.reshape(pred, (1, 3))
+                
+                #if np.isclose(curr_hit, near_pred, atol=0.01).all():
+                #    count_correct[i]=+1
+                
+                predicted.append(pred)
 
-                #if np.logical_and(curr_hit, near_pred).all():
-                #if np.array_equal(curr_hit, near_pred):
-                if np.isclose(curr_hit, near_pred, atol=0.01).all():    
-                    count_correct[i]=+1
-                    
-                predicted.append(near_pred)
-                curr_frame = curr_frame[1:]
+                curr_frame = curr_frame_orig[1:]
                 # inserta um  valor np.insert(array, index, value, axes)
                 curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
+                #print(curr_frame, predicted[-1])
 
             pred_sequences.append(predicted)
 
         print('[Model] Prediction Finished.')
         timer.stop()
-        
+
         return pred_sequences, count_correct
 
+def predict_full_sequences_nearest(self, x_test, y_test, bag_of_hits, y_test_aux=None, num_hits=6, num_features=3,
+                                    normalise=False, cylindrical=False, verbose=False, tol=0.01):
+    
+    '''
+        This function shift the window by 1 new prediction each time, re-run predictions on new window
+        parameters:
+        x_test : X test data normaly not scaled (4 hits)
+        y_test : y test data, normaly not scaled (6 hits)
+        num_hits : how many hits by y_test
+        normalise : it param says the input data must be scaled or not
+    
+    '''
+    
+    timer = Timer()
+    timer.start()
+
+    print('[Model] Predicting Sequences with Nearest Started')
+
+    total = len(x_test)
+
+    pred_sequences = []
+    pred_sequences_orig = []
+    
+    decimals = 2
+   
+    # covert to original values
+    #y_true = data.inverse_transform_test_y(y_test)
+    #y_true = y_true.round(decimals)
+    
+    #change the dataset by cartesian coordinates
+    if cylindrical:
+        y_test = y_test_aux
+    else:
+        y_test = y_test
+        
+    # bag_of_hits  
+    bag_of_hits_all = np.array(convert_matrix_to_vec(y_test, num_features))
+
+    count_correct = np.zeros(num_hits)
+    begin_idx, end_idx = 0, 0
+    num_boh = 6
+    
+    for j in range(total):
+        curr_frame = x_test[j]
+        # bag_of_hit by track
+        curr_track = np.array(y_test.iloc[j,0:]).reshape(num_hits, num_features)
+        
+        if verbose:
+            print('curr_track %s , %s:' % (j , curr_track))
+
+        predicted = []
+        predicted_orig = []
+        begin = 0
+        for i in range(num_hits):
+            # bag_of_hit by layer
+            end = begin+num_features
+            curr_layer = np.array(y_test.iloc[0:,begin:end]).reshape(total, num_features)
+            curr_hit = curr_track[i]
+            begin = end
+            
+            if verbose:
+                # primeira esta em originais
+                print('input:\n', curr_frame)
+            
+            if normalise:
+                curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1,12)))
+                curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values.flatten())
+                curr_frame_orig = np.reshape(curr_frame_orig, (4,3))
+                curr_frame = np.reshape(curr_frame, (4,3))
+            else:
+                curr_frame = curr_frame
+                curr_frame_orig = curr_frame
+                
+            if verbose:
+                print('input:\n', curr_frame)
+                #print('input orig:\n', curr_frame_orig)
+            
+            #print('input inv :\n', curr_frame_inv.reshape(4,3))
+            #print('newaxis ', curr_frame[np.newaxis,:,:])
+            # input must be scaled curr_frame
+            y_pred = self.model.predict(curr_frame[np.newaxis,:,:])
+
+            
+            y_pred = np.reshape(y_pred, (1, 3))
+            if normalise:
+                y_pred_orig = data.inverse_transform_y(y_pred)
+            else:
+                y_pred_orig = y_pred
+
+            y_pred_orig = np.reshape(y_pred_orig, (1, 3))
+
+            if bag_of_hits == BagOfHits.All:
+                hits = bag_of_hits_all
+            elif bag_of_hits == BagOfHits.Track:
+                hits = curr_track
+            elif bag_of_hits == BagOfHits.Layer:                    
+                hits = curr_layer
+            
+            if cylindrical:
+                rho, eta, phi = y_pred_orig[0][0], y_pred_orig[0][1], y_pred_orig[0][2]
+                #print(rho,eta,phi)
+                x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+                #print(x,y,z)
+                y_pred_orig[0][0] = x
+                y_pred_orig[0][1] = y
+                y_pred_orig[0][2] = z
+                
+                #print(y_pred_orig)
+                    
+            dist = distance.cdist(hits, y_pred_orig, 'euclidean')
+            idx = np.argmin(dist)
+            near_pred = hits[idx]
+
+            # if curr_hit is in cartesian coord, near_pred must be in cartesian coord too
+            if np.isclose(curr_hit, near_pred, atol=0.01).all():
+                count_correct[i]=+1
+                
+            if verbose:
+                print('pred:', y_pred)
+                print('inv pred:', y_pred_orig)
+                print('current:', curr_hit)
+                print('nearest:', near_pred)
+            
+            if cylindrical:
+                x, y, z = near_pred[0], near_pred[1], near_pred[2]
+                #print(x,y,z)
+                rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+                #print(rho,eta,phi)
+                near_pred[0] = rho
+                near_pred[1] = eta
+                near_pred[2] = phi
+                
+            #curr_track = np.delete(curr_track, idx, 0)
+            #near_pred_orig, idx = model.nearest_hit(y_pred_orig, bag_of_hits, silent=True) 
+                    
+            #near adiciona em valores originaeis
+            predicted.append(near_pred)
+            
+            #predicted_orig.append(near_pred_orig)
+            #print('-----\n')
+            
+            curr_frame = curr_frame_orig[1:]
+            curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
+            
+        pred_sequences.append(predicted)
+        #pred_sequences_orig.append(predicted_orig)
+        
+        if verbose:
+            if j == 3: break
+                
+    print('[Model] Prediction Finished.')
+    timer.stop()
+
+    return pred_sequences, count_correct
+
+ 
     def nearest_hit(self, hit, hits,
                              silent = True,
                              dist_hit = False,
@@ -303,3 +466,6 @@ class BaseModel():
 
     def rmse(y_true, y_pred):
         return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1)) 
+
+
+
