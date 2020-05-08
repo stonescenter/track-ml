@@ -22,6 +22,7 @@ class KindNormalization(Enum):
 	Polar = 3,
 	Nothing = 4
 
+    
 class Dataset():
 	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization):
 

@@ -12,6 +12,7 @@ from core.models.lstm import ModelLSTM, ModelLSTMParalel, ModelLSTMCuDnnParalel
 from core.models.cnn import ModelCNN
 from core.models.mlp import ModelMLP
 from core.models.rnn import ModelRNN
+from core.models.base import BagOfHits
 
 from core.utils.metrics import *
 from core.utils.utils import *
@@ -129,7 +130,7 @@ def main():
     #pred_full_res = model.predict_full_sequences_nearest(X_test_, y_test_, seq_len)
     #pred_full_res, correct = model.predict_full_sequences_nearest(X_test_, y_test, seq_len)
 
-    correct = []
+    correct = [0]
     y_pred = None
     if cylindrical:
         if type_pred == "normal":
@@ -140,26 +141,25 @@ def main():
 
             X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
                                              n_features=num_features, normalise=False)        
-            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, BagOfHits.Layer, y_test_aux, seq_len, 
+            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
                                                                  normalise=True, cylindrical=cylindrical,
                                                                  verbose=False)
+
     else:
         if type_pred == "normal":
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=True)
         elif type_pred == "nearest": 
-            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, BagOfHits.Layer, None, seq_len, 
+            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, seq_len, 
                                                              normalise=True, cylindrical=False,
                                                              verbose=False)
         else:
             print('no algorithm defined to predict')
 
-    print('[Data] shape y_test ', y_test.shape)
-    print('[Data] shape y_predicted ', y_pred.shape)   
-
     y_predicted = convert_vector_to_matrix(y_pred, num_features, seq_len)
     y_predicted = to_frame(y_predicted)
 
- 
+    print('[Data] shape y_test ', y_test.shape)
+    print('[Data] shape y_predicted ', y_predicted.shape)   
     
     # we need to transform to original data
     # no more supported
@@ -191,7 +191,7 @@ def main():
     print("\t Coordenates   : ", coord) 
     print("\t Model stand   : ", model.normalise)
     print("\t Total correct : ", correct)
-    print("\t Total porcentage correct :", (correct*100)/len(X_test)) 
+    print("\t Total porcentage correct :", [(t*100)/len(X_test) for t in correct]) 
 
     
     # metricas para nearest

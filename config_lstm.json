@@ -20,7 +20,7 @@
         "show_metrics": false
     },
     "testing": {
-        "type_prediction" : "normal",
+        "type_prediction" : "nearest",
          "normalise": false
     },
     "model": {

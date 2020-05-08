@@ -205,8 +205,9 @@ def calc_score_layer(y_true, y_pred, n_features):
         layer_pred = y_pred.iloc[0:,begin:end]
         begin = end
         
-        r2, mse, rmse, mae, result = calc_score1(data.reshape2d(layer_true, 1),
-                            data.reshape2d(layer_pred, 1), report=True)   
+        r2, mse, rmse, mae, result = calc_score(
+            np.reshape(layer_true.values.flatten(), len(layer_true)*n_features, 1),
+            np.reshape(layer_pred.values.flatten(), len(layer_pred)*n_features, 1), report=True)   
         
         print('layer ', layer)
         print(result)
