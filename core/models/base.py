@@ -4,8 +4,7 @@ __version__ = "1.0.0"
 
 import os
 import math
-import uuid
-import shortuuid
+
 import numpy as np
 import datetime as dt
 from enum import Enum
@@ -21,17 +20,6 @@ from keras.utils import plot_model
 
 from core.utils.utils import *
 
-def get_unique_name(name):
-
-    shortuuid.set_alphabet("0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
-    shortuuid.ShortUUID().random(length=16)
-    uid = uuid.uuid5(uuid.NAMESPACE_DNS, name)
-    enc = shortuuid.encode(uid)
-    return enc
-
-def get_decryp_name(key):
-    dec = shortuuid.decode(key)
-    return dec
 
 class BagOfHits(Enum):
     All=1,
@@ -55,7 +43,7 @@ class BaseModel():
         self.encryp_ds_name = get_unique_name(self.orig_ds_name)
         self.decryp_ds_name = get_decryp_name(self.encryp_ds_name)
 
-        print(self.encryp_ds_name)
+        #print(self.encryp_ds_name)
 
         if self.cylindrical:
             coord = 'cylin'
@@ -119,13 +107,13 @@ class BaseModel():
         #print('[Model] Shape of data train: ', x.shape) 
         #save_fname = os.path.join(save_dir, '%s-e%s.h5' % (dt.datetime.now().strftime('%d%m%Y-%H%M%S'), str(epochs)))
         callbacks = [
-            EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50),
+            EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10),
             ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
         ]
         history = self.model.fit(
             x,
             y,
-            validation_split=0.33,
+            validation_split=0.5,
             epochs=epochs,
             batch_size=batch_size,
             callbacks=callbacks

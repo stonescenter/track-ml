@@ -65,11 +65,23 @@ def main():
     output_logs = configs['paths']['log_dir']
     data_file = configs['data']['filename']
 
+    #create a encryp name for dataset
+    path_to, filename = os.path.split(data_file)
+
+    orig_ds_name = filename
+
+    encryp_ds_name = get_unique_name(orig_ds_name)
+    decryp_ds_name = get_decryp_name(encryp_ds_name)
+
+    output_encry = os.path.join(output_path, encryp_ds_name)  
     if os.path.isdir(output_bin) == False:
         os.mkdir(output_bin)
 
-    if os.path.isdir(output_path) == False:
+    if os.path.isdir(output_path) == False: 
         os.mkdir(output_path)
+         
+        if os.path.isdir(output_encry) == False: 
+            os.mkdir(output_encry)
 
     if os.path.isdir(output_logs) == False:
         os.mkdir(output_logs)        
@@ -81,7 +93,7 @@ def main():
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
-
+    model_name = configs['model']['name']
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -95,6 +107,9 @@ def main():
 
     X_train, y_train = data.get_training_data(n_hit_in=time_steps, n_hit_out=1,
                                  n_features=num_features, normalise=normalise)
+
+    if normalise:
+        data.save_scale_param(output_encry)
 
     print('[Data] shape supervised: X%s y%s :' % (X_train.shape, y_train.shape))
     
@@ -121,7 +136,8 @@ def main():
             return
 
         model.build_model()
-
+        save_fname = os.path.join(output_encry, 'architecture_%s.png' % model_name)
+        model.save_architecture(save_fname) 
         # in-memory training
         history = model.train(
             x=X_train,
@@ -130,7 +146,7 @@ def main():
             batch_size = configs['training']['batch_size']
         )
         #if show_metrics:
-        report = evaluate_training(history, output_path)
+        report = evaluate_training(history, output_encry)
 
     elif loadModel == True:       
         if not model.load_model():

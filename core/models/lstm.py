@@ -53,7 +53,7 @@ class ModelLSTM(BaseModel):
         self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
 
         print('[Model] Model Compiled with structure:', self.model.inputs)
-        self.save_architecture(self.save_fname)     
+        #self.save_architecture(self.save_fname)     
         timer.stop()
 
 

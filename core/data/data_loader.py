@@ -21,7 +21,6 @@ class KindNormalization(Enum):
 	Zscore = 2,
 	Polar = 3,
 	Nothing = 4
-
     
 class Dataset():
 	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization):
@@ -32,6 +31,7 @@ class Dataset():
 		dataframe = pd.read_csv(input_path, header=0, engine='python')
 		print("[Data] Data loaded from ", input_path)
 		self.kind = kind_normalization
+
 		if self.kind == KindNormalization.Scaling:
 			self.x_scaler = MinMaxScaler(feature_range=(0, 1))
 			self.y_scaler = MinMaxScaler(feature_range=(0, 1)) 			
@@ -231,7 +231,10 @@ class Dataset():
 			x_data = pd.DataFrame(xscaled)			
 
 			yscaled = self.y_scaler.fit_transform(Y)
-			y_data = pd.DataFrame(yscaled)	
+			y_data = pd.DataFrame(yscaled)
+
+			#if save_params:
+			#	self.save_scale_param()	
 		else:
 			x_data = pd.DataFrame(X)			
 			y_data = pd.DataFrame(Y)				
@@ -476,15 +479,15 @@ class Dataset():
 	def scale_data(self, array, mean,stds):
 		return (array-mean)/stds
 
-	def save_scale_param(self, path):
-	    #return data.x_scaler.mean_,  data.x_scaler.var_, data.y_scaler.mean_, data.y_scaler.var_
-	    save(os.path.join(path, 'x_scaler_scale.npy'), np.asarray(self.x_scaler.scale_))
-	    save(os.path.join(path, 'x_scaler_mean.npy'), np.asarray(self.x_scaler.mean_))
-	    save(os.path.join(path, 'x_scaler_var.npy'), np.asarray(self.x_scaler.var_))
+	def save_scale_param(self, path):   
+
+	    np.save(os.path.join(path, 'x_scaler_scale.npy'), np.asarray(self.x_scaler.scale_))
+	    np.save(os.path.join(path, 'x_scaler_mean.npy'), np.asarray(self.x_scaler.mean_))
+	    np.save(os.path.join(path, 'x_scaler_var.npy'), np.asarray(self.x_scaler.var_))
 	    
-	    save(os.path.join(path, 'y_scaler_scale.npy'), np.asarray(self.y_scaler.scale_))    
-	    save(os.path.join(path, 'y_scaler_mean.npy'), np.asarray(self.y_scaler.mean_))
-	    save(os.path.join(path, 'y_scaler_var.npy'), np.asarray(self.y_scaler.var_))
+	    np.save(os.path.join(path, 'y_scaler_scale.npy'), np.asarray(self.y_scaler.scale_))    
+	    np.save(os.path.join(path, 'y_scaler_mean.npy'), np.asarray(self.y_scaler.mean_))
+	    np.save(os.path.join(path, 'y_scaler_var.npy'), np.asarray(self.y_scaler.var_))
 
 	def load_scale_param(self, path):
 	    x_scaler = StandardScaler()

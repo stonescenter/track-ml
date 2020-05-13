@@ -24,6 +24,10 @@ from sklearn.metrics import pairwise_distances_argmin
 from .transformation import *
 import warnings
 
+import uuid
+import shortuuid
+
+
 class Timer():
  
     def __init__(self):
@@ -740,3 +744,14 @@ def track_plot_id(df_tb_plt, **kwargs):
                pivot=pivot)
 
 
+def get_unique_name(name):
+
+    shortuuid.set_alphabet("0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+    shortuuid.ShortUUID().random(length=16)
+    uid = uuid.uuid5(uuid.NAMESPACE_DNS, name)
+    enc = shortuuid.encode(uid)
+    return enc
+
+def get_decryp_name(key):
+    dec = shortuuid.decode(key)
+    return dec

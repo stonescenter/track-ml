@@ -63,11 +63,24 @@ def main():
     output_logs = configs['paths']['log_dir']
     data_file = configs['data']['filename']
 
-    if os.path.isdir(output_path) == False:
+    #create a encryp name for dataset
+    path_to, filename = os.path.split(data_file)
+
+    orig_ds_name = filename
+
+    encryp_ds_name = get_unique_name(orig_ds_name)
+    decryp_ds_name = get_decryp_name(encryp_ds_name)
+
+    output_encry = os.path.join(output_path, encryp_ds_name)  
+
+    if os.path.isdir(output_path) == False: 
         os.mkdir(output_path)
+         
+        if os.path.isdir(output_encry) == False: 
+            os.mkdir(output_encry)
 
     if os.path.isdir(output_logs) == False:
-        os.mkdir(output_logs)        
+        os.mkdir(output_logs)      
     
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
@@ -98,7 +111,7 @@ def main():
             print('[Error] please change the config file : load_model')
             return
     elif not loadModel:
-        print('[Error] this scripts don´t allow train models.')
+        print('[Error] this scripts don´t allow train models. Change the load_model parameter to true.')
         return
 
 
@@ -106,15 +119,15 @@ def main():
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
     # we need to load a previous distribution of training data. If we have testing stage divided
-    x_scaler, y_scaler = data.load_scale_param(output_path)
+    x_scaler, y_scaler = data.load_scale_param(output_encry)
 
     X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
                                        n_features=num_features, normalise=False,
                                        xscaler=x_scaler, yscaler=y_scaler)
 
     # a short dataset
-    X_test = X_test.iloc[0:1000,]
-    y_test = y_test[0:1000]
+    X_test = X_test.iloc[0:100,]
+    y_test = y_test[0:100]
 
     print('[Data] shape data X_test.shape:', X_test.shape)
     print('[Data] shape data y_test.shape:', y_test.shape)
@@ -137,7 +150,7 @@ def main():
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=True)
         elif type_pred == "nearest":                 
             # get data in coord cartesian
-            data_tmp = Dataset(path, split_data, False, num_hits, KindNormalization.Zscore)
+            data_tmp = Dataset(data_file, split, False, num_hits, KindNormalization.Zscore)
 
             X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
                                              n_features=num_features, normalise=False)        
@@ -179,7 +192,8 @@ def main():
 
     # save results in a file    
     orig_stdout = sys.stdout
-    f = open('results/results-test.txt', 'a')
+
+    f = open(os.path.join(output_encry, 'results-test.txt'), 'a')
     sys.stdout = f        
 
     print("[Output] Results ")
@@ -215,22 +229,22 @@ def main():
 
     if cylindrical:
 
-        y_test.to_csv(os.path.join(output_path, 'y_true_%s_cylin.csv' % configs['model']['name']),
+        y_test.to_csv(os.path.join(output_encry, 'y_true_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
-        y_predicted.to_csv(os.path.join(output_path, 'y_pred_%s_cylin.csv' % configs['model']['name']),
+        y_predicted.to_csv(os.path.join(output_encry, 'y_pred_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
-        X_test.to_csv(os.path.join(output_path, 'x_true_%s_cylin.csv' % configs['model']['name']),
+        X_test.to_csv(os.path.join(output_encry, 'x_true_%s_cylin.csv' % configs['model']['name']),
                     header=False, index=False)
     else:
 
-        y_test.to_csv(os.path.join(output_path, 'y_true_%s_xyz.csv' % configs['model']['name']),
+        y_test.to_csv(os.path.join(output_encry, 'y_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
-        y_predicted.to_csv(os.path.join(output_path, 'y_pred_%s_xyz.csv' % configs['model']['name']),
+        y_predicted.to_csv(os.path.join(output_encry, 'y_pred_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
-        X_test.to_csv(os.path.join(output_path, 'x_true_%s_xyz.csv' % configs['model']['name']),
+        X_test.to_csv(os.path.join(output_encry, 'x_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
 
-    print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)
+    print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_encry)
 
 if __name__=='__main__':
     main()
