@@ -94,6 +94,8 @@ def main():
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
     model_name = configs['model']['name']
+    optim = configs['model']['optimizer']
+    neurons = configs['model']['layers'][0]['neurons']
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -160,7 +162,7 @@ def main():
 
     # save results in a file    
     orig_stdout = sys.stdout
-    f = open('results/results-train.txt', 'a')
+    f = open(os.path.join(output_encry, 'results-train.txt'), 'a')
     sys.stdout = f        
 
     print("[Output] Train results ")
@@ -171,12 +173,14 @@ def main():
     print("\t Path saved        : ", model.save_fnameh5) 
     print("\t Coordenate type   : ", coord) 
     print("\t Model scaled      : ", model.normalise)
+    print("\t Model Optimizer   : ", optim)
+    print("\t Model Neurons     : ", neurons)  
     print("\t Accuracy          : ", report) 
     
     sys.stdout = orig_stdout
     f.close()    
     
-    print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)    
+    print('[Output] All results saved at %s directory at results-train.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)    
 
 
 if __name__=='__main__':

@@ -84,8 +84,8 @@ def main():
     
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
-    optim = configs['model']['optimizer']  # the number of features of each hits
-    neurons = configs['model']['layers'][0]['neurons']  # the number of features of each hits
+    optim = configs['model']['optimizer']
+    neurons = configs['model']['layers'][0]['neurons']
 
     split = configs['data']['train_split']  # the number of features of each hits
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
@@ -206,7 +206,7 @@ def main():
     print("\t Tracks        : ", len(X_test))
     print("\t Model saved   : ", model.save_fnameh5) 
     print("\t Coordenates   : ", coord) 
-    print("\t Model stand   : ", model.normalise)
+    print("\t Model Scaled   : ", model.normalise)
     print("\t Model Optimizer : ", optim)
     print("\t Model Neurons   : ", neurons)   
     print("\t Total correct %s with tolerance=%s: " % (correct, tolerance))
