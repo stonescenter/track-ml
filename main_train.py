@@ -80,8 +80,8 @@ def main():
     if os.path.isdir(output_path) == False: 
         os.mkdir(output_path)
          
-        if os.path.isdir(output_encry) == False: 
-            os.mkdir(output_encry)
+    if os.path.isdir(output_encry) == False: 
+        os.mkdir(output_encry)
 
     if os.path.isdir(output_logs) == False:
         os.mkdir(output_logs)        
