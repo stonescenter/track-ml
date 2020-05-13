@@ -19,6 +19,12 @@
         "use_gpu": true,
         "show_metrics": false        
     },
+    "testing": {
+        "type_prediction" : "nearest",
+        "normalise": false,
+        "tolerance": 0.02
+
+    },    
     "model": {
         "name": "lstm",
         "loss": "mse",

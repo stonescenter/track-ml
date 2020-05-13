@@ -29,7 +29,7 @@
         "name": "lstm",
         "loss": "mse",
         "metrics": ["mae","acc"],
-        "optimizer": "RMSprop",
+        "optimizer": "rmsprop",
         "layers": [
             {
                 "type": "lstm",
