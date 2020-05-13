@@ -129,8 +129,8 @@ def main():
                                        xscaler=x_scaler, yscaler=y_scaler)
 
     # a short dataset
-    X_test = X_test.iloc[0:1000,]
-    y_test = y_test[0:1000]
+    #X_test = X_test.iloc[0:1000,]
+    #y_test = y_test[0:1000]
 
     print('[Data] shape data X_test.shape:', X_test.shape)
     print('[Data] shape data y_test.shape:', y_test.shape)
