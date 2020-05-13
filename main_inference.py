@@ -25,7 +25,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LSTM implementation ")
 
     # Dataset setting
-    parser.add_argument('--config', type=str, default="config.json", help='Configuration file')
+    parser.add_argument('--config', type=str, default="default_config.json", help='Configuration file')
     parser.add_argument('--dataset', type=str, help='Path to dataset')
     parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
     # parse the arguments
@@ -84,12 +84,15 @@ def main():
     
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
+    optim = configs['model']['optimizer']  # the number of features of each hits
+    neurons = configs['model']['layers'][0]['neurons']  # the number of features of each hits
 
     split = configs['data']['train_split']  # the number of features of each hits
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
     type_pred = configs['testing']['type_prediction']
+    tolerance = configs['testing']['tolerance']
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -126,8 +129,8 @@ def main():
                                        xscaler=x_scaler, yscaler=y_scaler)
 
     # a short dataset
-    X_test = X_test.iloc[0:100,]
-    y_test = y_test[0:100]
+    X_test = X_test.iloc[0:1000,]
+    y_test = y_test[0:1000]
 
     print('[Data] shape data X_test.shape:', X_test.shape)
     print('[Data] shape data y_test.shape:', y_test.shape)
@@ -164,7 +167,7 @@ def main():
         elif type_pred == "nearest": 
             y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, seq_len, 
                                                              normalise=True, cylindrical=False,
-                                                             verbose=False)
+                                                             verbose=False, tol=tolerance)
         else:
             print('no algorithm defined to predict')
 
@@ -204,7 +207,9 @@ def main():
     print("\t Model saved   : ", model.save_fnameh5) 
     print("\t Coordenates   : ", coord) 
     print("\t Model stand   : ", model.normalise)
-    print("\t Total correct : ", correct)
+    print("\t Model Optimizer : ", optim)
+    print("\t Model Neurons   : ", neurons)   
+    print("\t Total correct %s with tolerance=%s: " % (correct, tolerance))
     print("\t Total porcentage correct :", [(t*100)/len(X_test) for t in correct]) 
 
     
@@ -219,9 +224,7 @@ def main():
     summarize_scores_axes(mses, rmses, r2s)
 
     sys.stdout = orig_stdout
-    f.close()    
-
-
+    f.close()
 
     # call this function againt with normalise False
     #x_true, y_true = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
@@ -244,7 +247,7 @@ def main():
         X_test.to_csv(os.path.join(output_encry, 'x_true_%s_xyz.csv' % configs['model']['name']),
                     header=False, index=False)
 
-    print('[Output] All results saved at %s directory and results.txt file. Please use notebooks/plot_prediction.ipynb' % output_encry)
+    print('[Output] All results saved at %s directory at results-test.txt file. Please use notebooks/plot_prediction.ipynb' % output_encry)
 
 if __name__=='__main__':
     main()

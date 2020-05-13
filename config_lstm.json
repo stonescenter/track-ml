@@ -5,15 +5,15 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "/data/track-ml/eramia/dataset/eta_n0.5-0.5_phi_n0.5-0.5.csv",
+        "filename": "/data/track-ml/eramia/dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
         "train_split": 0.70,
         "normalise": true,
-        "cylindrical": false,
+        "cylindrical": true,
         "num_hits": 10
     },
     "training": {
-        "epochs": 30,
-        "batch_size": 64,
+        "epochs": 2,
+        "batch_size": 32,
         "save_model": true,
         "load_model": true,
         "use_gpu": true,
@@ -21,13 +21,15 @@
     },
     "testing": {
         "type_prediction" : "nearest",
-         "normalise": false
+        "normalise": false,
+        "tolerance": 0.02
+
     },
     "model": {
         "name": "lstm",
         "loss": "mse",
         "metrics": ["mae","acc"],
-        "optimizer": "adam",
+        "optimizer": "RMSprop",
         "layers": [
             {
                 "type": "lstm",
@@ -59,7 +61,7 @@
             {
                 "type": "dense",
                 "neurons": 3,
-                "activation": "linear"
+                "activation": "relu"
             }
         ]
     }

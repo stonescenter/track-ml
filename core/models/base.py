@@ -378,7 +378,8 @@ class BaseModel():
                 near_pred = hits[idx]
 
                 # if curr_hit is in cartesian coord, near_pred must be in cartesian coord too
-                if np.isclose(curr_hit, near_pred, atol=0.01).all():
+                # very small numbers are differents or equals
+                if np.isclose(curr_hit, near_pred, atol=tol).all():
                     count_correct[i]=+1
                     
                 if verbose:
