@@ -28,6 +28,8 @@ def parse_args():
     parser.add_argument('--config', type=str, default="default_config.json", help='Configuration file')
     parser.add_argument('--dataset', type=str, help='Path to dataset')
     parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
+    parser.add_argument('--load', type=str, help='this param load model')
+    
     # parse the arguments
     args = parser.parse_args()
 
@@ -93,22 +95,25 @@ def main():
     num_hits = configs['data']['num_hits']
     type_pred = configs['testing']['type_prediction']
     tolerance = configs['testing']['tolerance']
+    loadModel = configs['training']['load_model']
 
+    # we set preference to params by bash commands
     if args.dataset is not None:
         data_file = args.dataset
         configs['data']['filename'] = data_file     
     if args.cylindrical is not None:
         cylindrical = True if args.cylindrical == "True" else False
         configs['data']['cylindrical'] = cylindrical    
+    if args.load is not None:
+        loadModel = True if args.load == "True" else False
+        configs['training']['load_model'] = loadModel  
 
     model = manage_models(configs)
 
     if model is None:
         print('Please instance model')
         return
-
-    loadModel = configs['training']['load_model']
-    
+   
     if loadModel:       
         if not model.load_model():
             print('[Error] please change the config file : load_model')

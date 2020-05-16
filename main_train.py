@@ -96,13 +96,17 @@ def main():
     model_name = configs['model']['name']
     optim = configs['model']['optimizer']
     neurons = configs['model']['layers'][0]['neurons']
-
+    loadModel = configs['training']['load_model']
+    
     if args.dataset is not None:
         data_file = args.dataset
         configs['data']['filename'] = data_file     
     if args.cylindrical is not None:
         cylindrical = True if args.cylindrical == "True" else False
         configs['data']['cylindrical'] = cylindrical    
+    if args.load is not None:
+        loadModel = True if args.load == "True" else False
+        configs['training']['load_model'] = loadModel 
 
     # prepare data set
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
@@ -126,7 +130,7 @@ def main():
         print('Please instance model')
         return
 
-    loadModel = configs['training']['load_model']
+
     show_metrics = configs['training']['show_metrics']
     report = ""
 
