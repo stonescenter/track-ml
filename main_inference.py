@@ -232,19 +232,19 @@ def main():
 
     if cylindrical:
 
-        y_test.to_csv(os.path.join(output_encry, 'y_true_%s_cylin.csv' % configs['model']['name']),
+        y_test.to_csv(os.path.join(output_encry, 'y_true_%s_cylin_%s.csv' % (configs['model']['name'], type_pred)),
                     header=False, index=False)
-        y_predicted.to_csv(os.path.join(output_encry, 'y_pred_%s_cylin.csv' % configs['model']['name']),
+        y_predicted.to_csv(os.path.join(output_encry, 'y_pred_%s_cylin_%s.csv' % (configs['model']['name'], type_pred)),
                     header=False, index=False)
-        X_test.to_csv(os.path.join(output_encry, 'x_true_%s_cylin.csv' % configs['model']['name']),
+        X_test.to_csv(os.path.join(output_encry, 'x_true_%s_cylin_%s.csv' % (configs['model']['name'], type_pred)),
                     header=False, index=False)
     else:
 
-        y_test.to_csv(os.path.join(output_encry, 'y_true_%s_xyz.csv' % configs['model']['name']),
+        y_test.to_csv(os.path.join(output_encry, 'y_true_%s_xyz_%s.csv' % (configs['model']['name'],type_pred)),
                     header=False, index=False)
-        y_predicted.to_csv(os.path.join(output_encry, 'y_pred_%s_xyz.csv' % configs['model']['name']),
+        y_predicted.to_csv(os.path.join(output_encry, 'y_pred_%s_xyz_%s.csv' % (configs['model']['name'], type_pred)),
                     header=False, index=False)
-        X_test.to_csv(os.path.join(output_encry, 'x_true_%s_xyz.csv' % configs['model']['name']),
+        X_test.to_csv(os.path.join(output_encry, 'x_true_%s_xyz_%s.csv' % (configs['model']['name'], type_pred)),
                     header=False, index=False)
 
     print('[Output] All results saved at %s directory at results-test.txt file. Please use notebooks/plot_prediction.ipynb' % output_encry)
