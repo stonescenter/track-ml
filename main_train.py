@@ -29,6 +29,8 @@ def parse_args():
     parser.add_argument('--config', type=str, default="config.json", help='Configuration file')
     parser.add_argument('--dataset', type=str, help='Path to dataset')
     parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
+    parser.add_argument('--load', type=str, help='this param load model')
+        
     # parse the arguments
     args = parser.parse_args()
 
@@ -97,7 +99,7 @@ def main():
     optim = configs['model']['optimizer']
     neurons = configs['model']['layers'][0]['neurons']
     loadModel = configs['training']['load_model']
-    
+
     if args.dataset is not None:
         data_file = args.dataset
         configs['data']['filename'] = data_file     
