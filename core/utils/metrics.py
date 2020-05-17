@@ -263,3 +263,7 @@ def summarize_scores_axes(mses, rmses, r2s):
         print('\tMSE:[%.2f, %.2f, %.2f]' % (mse[0], mse[1], mse[2]))
         print('\tRMSE:[%.2f, %.2f, %.2f]' % (rmse[0], rmse[1], rmse[2]))
         counter+=1
+
+def save_numpy_values(array_values, path, name_file ):   
+
+    np.save(os.path.join(path, name_file), np.asarray(array_values))     

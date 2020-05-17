@@ -198,6 +198,13 @@ def main():
     else:
         coord = 'xyz'
 
+    ident_name = model.name + "_" + coord 
+
+    # save correct hits
+    correct_new = list(correct)
+    correct_new.append(tolerance)
+    save_numpy_values(correct_new, output_encry, 'correct_%s.npy' % ident_name)
+
     # save results in a file    
     orig_stdout = sys.stdout
 
