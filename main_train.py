@@ -99,6 +99,9 @@ def main():
     optim = configs['model']['optimizer']
     neurons = configs['model']['layers'][0]['neurons']
     loadModel = configs['training']['load_model']
+    validation_split = configs['training']['validation']
+    epochs = configs['training']['epochs']
+    batch = configs['training']['batch_size']
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -135,7 +138,14 @@ def main():
 
     show_metrics = configs['training']['show_metrics']
     report = ""
+    
+    if cylindrical:
+        coord = 'cylin'
+    else:
+        coord = 'xyz'
 
+    ident_name = model.name + "_" + coord 
+        
     if loadModel == False:
         # if exist, please used the compiled model!
         if model.exist_model(model.save_fnameh5):
@@ -144,28 +154,24 @@ def main():
             return
 
         model.build_model()
-        save_fname = os.path.join(output_encry, 'architecture_%s.png' % model_name)
+        save_fname = os.path.join(output_encry, 'architecture_%s.png' % ident_name)
         model.save_architecture(save_fname) 
         # in-memory training
         history = model.train(
             x=X_train,
             y=y_train,
-            epochs = configs['training']['epochs'],
-            batch_size = configs['training']['batch_size']
+            validation = validation_split,
+            epochs = epochs,
+            batch_size = batch
         )
         #if show_metrics:
-        report = evaluate_training(history, output_encry)
+        report = evaluate_training(history, output_encry, ident_name)
 
     elif loadModel == True:       
         if not model.load_model():
             print ('[Error] please change the config file : load_model')
             return
     
-    if cylindrical:
-        coord = 'cylin'
-    else:
-        coord = 'xyz'
-
     # save results in a file    
     orig_stdout = sys.stdout
     f = open(os.path.join(output_encry, 'results-train.txt'), 'a')
@@ -180,7 +186,9 @@ def main():
     print("\t Coordenate type   : ", coord) 
     print("\t Model scaled      : ", model.normalise)
     print("\t Model Optimizer   : ", optim)
-    print("\t Model Neurons     : ", neurons)  
+    print("\t Model batch_size  : ", batch)
+    print("\t Model epochs      : ", epochs)
+
     print("\t Accuracy          : ", report) 
     
     sys.stdout = orig_stdout

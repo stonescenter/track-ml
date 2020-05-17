@@ -34,7 +34,8 @@ class BaseModel():
         self.cylindrical = configs['data']['cylindrical']
         self.epochs = configs['training']['epochs']
         self.batch_size = configs['training']['batch_size']
-
+        self.validation = configs['training']['validation']
+        
         path_to, filename = os.path.split(configs['data']['filename'])
         #print(get_unique_name(filename))
         #self.orig_ds_name = configs['data']['filename']
@@ -99,7 +100,7 @@ class BaseModel():
         self.model.save(filepath)
         print('[Model] Model for inference saved at %s' % filepath)
 
-    def train(self, x, y, epochs, batch_size):
+    def train(self, x, y, epochs, batch_size, validation):
         timer = Timer()
         timer.start()
         print('[Model] Training Started')
@@ -113,7 +114,7 @@ class BaseModel():
         history = self.model.fit(
             x,
             y,
-            validation_split=0.1,
+            validation_split=validation,
             epochs=epochs,
             batch_size=batch_size,
             callbacks=callbacks,

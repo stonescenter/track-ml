@@ -34,7 +34,7 @@ def evaluate_model(history, model, x, y, save_to):
     plt.show()
 
 
-def evaluate_training(history, save_to):
+def evaluate_training(history, save_to, keyword):
     history = history.history
 
     #print('Validation accuracy: {acc}, loss: {loss}'.format(
@@ -55,7 +55,7 @@ def evaluate_training(history, save_to):
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
 
-    save_fname = os.path.join(save_to, 'evaluation-metrics.png') 
+    save_fname = os.path.join(save_to, 'evaluation-metrics_%s.png' % keyword) 
     plt.savefig(save_fname)
     plt.show()
     # summarize history for loss
@@ -67,7 +67,7 @@ def evaluate_training(history, save_to):
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test val'], loc='upper left')
-    save_fname = os.path.join(save_to, 'evaluation-loss.png') 
+    save_fname = os.path.join(save_to, 'evaluation-loss_%s.png' % keyword) 
     plt.savefig(save_fname)
     plt.show()    
 
