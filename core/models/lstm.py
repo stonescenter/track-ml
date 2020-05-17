@@ -33,11 +33,22 @@ class ModelLSTM(BaseModel):
             return_seq = layer['return_seq'] if 'return_seq' in layer else None
             input_timesteps = layer['input_timesteps'] if 'input_timesteps' in layer else None
             input_features = layer['input_features'] if 'input_features' in layer else None
-            
-            print('input_features %s input_timesteps %s ' % ( input_features, input_timesteps))
+            dropout = layer['dropout'] if 'dropout' in layer else None
 
+            #print('input_features %s input_timesteps %s ' % ( input_features, input_timesteps))
+            print('batch_size: ', self.batch_size)
             if layer['type'] == 'lstm':
-                self.model.add(LSTM(neurons, input_shape=(input_timesteps, input_features), return_sequences=return_seq))
+                if dropout is None:
+                    self.model.add(LSTM(neurons, input_shape=(input_timesteps, input_features), return_sequences=return_seq))
+                else:
+                    # Dropout can be applied to the input connection within the LSTM nodes.
+                    #self.model.add(LSTM(neurons, batch_input_shape=(self.batch_size, input_timesteps, input_features),
+                    #    return_sequences=return_seq, stateful=True, dropout=dropout))
+                    
+                    # applied to input signal of lstm units 
+                    self.model.add(LSTM(neurons, batch_input_shape=(self.batch_size, input_timesteps, input_features),
+                        return_sequences=return_seq, stateful=True, recurrent_dropout=dropout))
+
             if layer['type'] == 'dense':
                 self.model.add(Dense(neurons, activation=activation))
             if layer['type'] == 'dropout':

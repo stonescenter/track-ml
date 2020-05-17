@@ -107,16 +107,17 @@ class BaseModel():
         #print('[Model] Shape of data train: ', x.shape) 
         #save_fname = os.path.join(save_dir, '%s-e%s.h5' % (dt.datetime.now().strftime('%d%m%Y-%H%M%S'), str(epochs)))
         callbacks = [
-            EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10),
+            EarlyStopping(monitor='loss', mode='min', verbose=1),
             ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
         ]
         history = self.model.fit(
             x,
             y,
-            validation_split=0.5,
+            validation_split=0.1,
             epochs=epochs,
             batch_size=batch_size,
-            callbacks=callbacks
+            callbacks=callbacks,
+            shuffle=False
         )
 
         if self.save == True:
