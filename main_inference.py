@@ -164,7 +164,7 @@ def main():
                                              n_features=num_features, normalise=False)        
             y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
                                                                  normalise=True, cylindrical=cylindrical,
-                                                                 verbose=False)
+                                                                 verbose=False, tol=tolerance)
 
     else:
         if type_pred == "normal":
