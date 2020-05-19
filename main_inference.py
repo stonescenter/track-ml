@@ -7,6 +7,7 @@ import os
 import argparse
 import json
 
+import datetime as dt
 from core.data.data_loader import *
 from core.models.lstm import ModelLSTM, ModelLSTMParalel, ModelLSTMCuDnnParalel
 from core.models.cnn import ModelCNN
@@ -65,25 +66,6 @@ def main():
     output_logs = configs['paths']['log_dir']
     data_file = configs['data']['filename']
 
-    #create a encryp name for dataset
-    path_to, filename = os.path.split(data_file)
-
-    orig_ds_name = filename
-
-    encryp_ds_name = get_unique_name(orig_ds_name)
-    decryp_ds_name = get_decryp_name(encryp_ds_name)
-
-    output_encry = os.path.join(output_path, encryp_ds_name)  
-
-    if os.path.isdir(output_path) == False: 
-        os.mkdir(output_path)
-         
-    if os.path.isdir(output_encry) == False: 
-        os.mkdir(output_encry)
-
-    if os.path.isdir(output_logs) == False:
-        os.mkdir(output_logs)      
-    
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
     optim = configs['model']['optimizer']
@@ -107,6 +89,25 @@ def main():
     if args.load is not None:
         loadModel = True if args.load == "True" else False
         configs['training']['load_model'] = loadModel  
+
+    #create a encryp name for dataset
+    path_to, filename = os.path.split(data_file)
+
+    orig_ds_name = filename
+
+    encryp_ds_name = get_unique_name(orig_ds_name)
+    decryp_ds_name = get_decryp_name(encryp_ds_name)
+
+    output_encry = os.path.join(output_path, encryp_ds_name)  
+
+    if os.path.isdir(output_path) == False: 
+        os.mkdir(output_path)
+         
+    if os.path.isdir(output_encry) == False: 
+        os.mkdir(output_encry)
+
+    if os.path.isdir(output_logs) == False:
+        os.mkdir(output_logs)        
 
     model = manage_models(configs)
 
@@ -210,13 +211,15 @@ def main():
 
     f = open(os.path.join(output_encry, 'results-test.txt'), 'a')
     sys.stdout = f        
+    now = dt.datetime.now()
 
     print("[Output] Results ")
     print("---Parameters--- ")
     print("\t Model Name    : ", model.name)
     print("\t Dataset       : ", model.orig_ds_name)
     print("\t Tracks        : ", len(X_test))
-    print("\t Model saved   : ", model.save_fnameh5) 
+    print("\t Model saved   : ", model.save_fnameh5)
+    print("\t Test date     : ", now.strftime("%d/%m/%Y %H:%M:%S")) 
     print("\t Coordenates   : ", coord) 
     print("\t Model Scaled   : ", model.normalise)
     print("\t Model Optimizer : ", optim)

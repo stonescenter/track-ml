@@ -8,6 +8,7 @@ import argparse
 import json
 
 from sklearn.model_selection import train_test_split
+import datetime as dt
 
 from core.data.data_loader import *
 from core.models.lstm import ModelLSTM, ModelLSTMParalel, ModelLSTMCuDnnParalel
@@ -66,28 +67,6 @@ def main():
     output_path = configs['paths']['save_dir']
     output_logs = configs['paths']['log_dir']
     data_file = configs['data']['filename']
-
-    #create a encryp name for dataset
-    path_to, filename = os.path.split(data_file)
-
-    orig_ds_name = filename
-
-    encryp_ds_name = get_unique_name(orig_ds_name)
-    decryp_ds_name = get_decryp_name(encryp_ds_name)
-
-    output_encry = os.path.join(output_path, encryp_ds_name)  
-    if os.path.isdir(output_bin) == False:
-        os.mkdir(output_bin)
-
-    if os.path.isdir(output_path) == False: 
-        os.mkdir(output_path)
-         
-    if os.path.isdir(output_encry) == False: 
-        os.mkdir(output_encry)
-
-    if os.path.isdir(output_logs) == False:
-        os.mkdir(output_logs)        
-    
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
 
@@ -113,6 +92,27 @@ def main():
         loadModel = True if args.load == "True" else False
         configs['training']['load_model'] = loadModel 
 
+    #create a encryp name for dataset
+    path_to, filename = os.path.split(data_file)
+
+    orig_ds_name = filename
+
+    encryp_ds_name = get_unique_name(orig_ds_name)
+    decryp_ds_name = get_decryp_name(encryp_ds_name)
+
+    output_encry = os.path.join(output_path, encryp_ds_name)  
+    if os.path.isdir(output_bin) == False:
+        os.mkdir(output_bin)
+
+    if os.path.isdir(output_path) == False: 
+        os.mkdir(output_path)
+         
+    if os.path.isdir(output_encry) == False: 
+        os.mkdir(output_encry)
+
+    if os.path.isdir(output_logs) == False:
+        os.mkdir(output_logs)        
+    
     # prepare data set
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
@@ -177,6 +177,7 @@ def main():
     f = open(os.path.join(output_encry, 'results-train.txt'), 'a')
     sys.stdout = f        
 
+    now = dt.datetime.now()
     print("[Output] Train results ")
     print("---Parameters--- ")
     print("\t Model Name        : ", model.name)
@@ -184,17 +185,17 @@ def main():
     print("\t Total tracks      : ", len(X_train))
     print("\t Path saved        : ", model.save_fnameh5) 
     print("\t Coordenate type   : ", coord) 
+    print("\t Compiled date     : ", now.strftime("%d/%m/%Y %H:%M:%S"))    
     print("\t Model scaled      : ", model.normalise)
     print("\t Model Optimizer   : ", optim)
     print("\t Model batch_size  : ", batch)
     print("\t Model epochs      : ", epochs)
-
     print("\t Accuracy          : ", report) 
     
     sys.stdout = orig_stdout
     f.close()    
     
-    print('[Output] All results saved at %s directory at results-train.txt file. Please use notebooks/plot_prediction.ipynb' % output_path)    
+    print('[Output] All results saved at %s directory it results-train.txt file. Please use notebooks/plot_prediction.ipynb' % output_encry)    
 
 
 if __name__=='__main__':
