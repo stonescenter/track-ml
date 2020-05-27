@@ -37,10 +37,10 @@ class ModelCNN(BaseModel):
             kernel_size = layer['kernel_size'] if 'kernel_size' in layer else None
             pool_size = layer['pool_size'] if 'pool_size' in layer else None
 
-            print('input_features %s input_timesteps %s ' % ( input_features, input_timesteps))
+            #print('input_features %s input_timesteps %s ' % ( input_features, input_timesteps))
 
             if layer['type'] == 'cnn':
-                self.model.add(Conv1D(filters=64, kernel_size=2, activation=activation, 
+                self.model.add(Conv1D(filters=filters, kernel_size=kernel_size, activation=activation, 
                     input_shape=(input_timesteps, input_features)))
             if layer['type'] == 'dense':
                 self.model.add(Dense(neurons, activation=activation))
