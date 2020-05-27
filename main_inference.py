@@ -30,6 +30,8 @@ def parse_args():
     parser.add_argument('--dataset', type=str, help='Path to dataset')
     parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
     parser.add_argument('--load', type=str, help='this param load model')
+    parser.add_argument('--normalise', type=str, help='normalise input data')
+    
     
     # parse the arguments
     args = parser.parse_args()
@@ -89,6 +91,9 @@ def main():
     if args.load is not None:
         loadModel = True if args.load == "True" else False
         configs['training']['load_model'] = loadModel  
+    if args.normalise is not None:
+        normalise = True if args.normalise == "True" else False
+        configs['data']['normalise'] = normalise  
 
     #create a encryp name for dataset
     path_to, filename = os.path.split(data_file)
@@ -156,23 +161,24 @@ def main():
     y_pred = None
     if cylindrical:
         if type_pred == "normal":
-            y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=True)
+            y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
         elif type_pred == "nearest":                 
             # get data in coord cartesian
             data_tmp = Dataset(data_file, split, False, num_hits, KindNormalization.Zscore)
 
+            # for cylindrical True always we need the data as original values with normalise False
             X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
                                              n_features=num_features, normalise=False)        
             y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
-                                                                 normalise=True, cylindrical=cylindrical,
+                                                                 normalise=normalise, cylindrical=True,
                                                                  verbose=False, tol=tolerance)
 
     else:
         if type_pred == "normal":
-            y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=True)
+            y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
         elif type_pred == "nearest": 
             y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, seq_len, 
-                                                             normalise=True, cylindrical=False,
+                                                             normalise=normalise, cylindrical=False,
                                                              verbose=False, tol=tolerance)
         else:
             print('no algorithm defined to predict')
