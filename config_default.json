@@ -14,13 +14,14 @@
     "training": {
         "epochs": 10,
         "batch_size": 36,
+        "validation": 0.3,
         "save_model": true,
         "load_model": false,
         "use_gpu": true,
         "show_metrics": false        
     },
     "testing": {
-        "type_prediction" : "nearest",
+        "type_optimization" : "nearest",
         "normalise": false,
         "tolerance": 0.02
 
