@@ -14,14 +14,16 @@
     "training": {
         "epochs": 10,
         "batch_size": 18,
+        "validation": 0.2,
         "save_model": true,
         "load_model": true,
         "use_gpu": true,
         "show_metrics": false
     },
     "testing": {
-        "type_prediction" : "normal",
-        "normalise": false
+        "type_optimization" : "normal",
+        "normalise": false,
+        "tolerance": 0.02
     },
     "model": {
         "name": "cnn",
@@ -31,7 +33,7 @@
         "layers": [
             {
                 "type": "cnn",
-                "filters": 32,
+                "filters": 64,
                 "kernel_size": 2,
                 "activation": "relu",
                 "input_timesteps": 4,

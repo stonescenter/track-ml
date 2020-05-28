@@ -71,7 +71,6 @@ def main():
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
     optim = configs['model']['optimizer']
-    neurons = configs['model']['layers'][0]['neurons']
 
     split = configs['data']['train_split']  # the number of features of each hits
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
@@ -232,7 +231,6 @@ def main():
     print("\t Coordenates   : ", coord) 
     print("\t Model Scaled   : ", model.normalise)
     print("\t Model Optimizer : ", optim)
-    print("\t Model Neurons   : ", neurons)
     print("\t Prediction Opt  : ", type_opt)
     print("\t Total correct %s with tolerance=%s: " % (correct, tolerance))
     print("\t Total porcentage correct :", [(t*100)/len(X_test) for t in correct]) 

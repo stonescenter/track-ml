@@ -76,7 +76,7 @@ def main():
     num_hits = configs['data']['num_hits']
     model_name = configs['model']['name']
     optim = configs['model']['optimizer']
-    neurons = configs['model']['layers'][0]['neurons']
+    arch = configs['model']['layers']
     loadModel = configs['training']['load_model']
     validation_split = configs['training']['validation']
     epochs = configs['training']['epochs']
@@ -190,7 +190,8 @@ def main():
     print("\t Model Optimizer   : ", optim)
     print("\t Model batch_size  : ", batch)
     print("\t Model epochs      : ", epochs)
-    print("\t Accuracy          : ", report) 
+    print("\t Accuracy          : ", report)
+    print("\t Architecture      : ", arch)
     
     sys.stdout = orig_stdout
     f.close()    

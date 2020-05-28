@@ -5,7 +5,7 @@ import json
 from core.data.data_loader import *
 from core.utils.utils import *
 
-# python generate_distribution.py --dataset dataset/2020_100_sorted.csv --cylindrical true --split 0.7 --normalise true
+# python script_generate_dist.py --dataset "/path_to_.csv" --cylindrical False --split 0.8 --normalise True
 def parse_args():
     """Parse arguments."""
     # Parameters settings
@@ -54,14 +54,17 @@ def main():
 
 	print('path:', data_file)
 	print('encry:', encryp_ds_name)
-	print(cylindrical)
-	print(normalise)
+
+    if cylindrical:
+        coord = 'cylin'
+    else:
+        coord = 'xyz'
 
 	if normalise:
 	    data.save_scale_param(output_encry)
-	    print('scaled data saved!')
+	    print('Data distribution saved with using %s', coord)
 	else:
-		print('no scaled saved')
+		print('No data distribution saved')
 
 if __name__=='__main__':
     main()
