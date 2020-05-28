@@ -81,6 +81,8 @@ def main():
     validation_split = configs['training']['validation']
     epochs = configs['training']['epochs']
     batch = configs['training']['batch_size']
+    shuffle_train = configs['training']['shuffle']
+
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -160,9 +162,10 @@ def main():
         history = model.train(
             x=X_train,
             y=y_train,
-            validation = validation_split,
-            epochs = epochs,
-            batch_size = batch
+            validation=validation_split,
+            epochs=epochs,
+            batch_size=batch,
+            shuffle=shuffle_train
         )
         #if show_metrics:
         report = evaluate_training(history, output_encry, ident_name)

@@ -100,7 +100,7 @@ class BaseModel():
         self.model.save(filepath)
         print('[Model] Model for inference saved at %s' % filepath)
 
-    def train(self, x, y, epochs, batch_size, validation):
+    def train(self, x, y, epochs, batch_size, validation, shuffle=False):
         timer = Timer()
         timer.start()
         print('[Model] Training Started')
@@ -118,7 +118,7 @@ class BaseModel():
             epochs=epochs,
             batch_size=batch_size,
             callbacks=callbacks,
-            shuffle=False
+            shuffle=shuffle
         )
 
         if self.save == True:
