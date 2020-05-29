@@ -35,7 +35,8 @@ class BaseModel():
         self.epochs = configs['training']['epochs']
         self.batch_size = configs['training']['batch_size']
         self.validation = configs['training']['validation']
-        
+        self.earlystopping = configs['training']['earlystopping']
+
         path_to, filename = os.path.split(configs['data']['filename'])
         #print(get_unique_name(filename))
         #self.orig_ds_name = configs['data']['filename']
@@ -107,10 +108,18 @@ class BaseModel():
         print('[Model] %s epochs, %s batch size' % (epochs, batch_size))
         #print('[Model] Shape of data train: ', x.shape) 
         #save_fname = os.path.join(save_dir, '%s-e%s.h5' % (dt.datetime.now().strftime('%d%m%Y-%H%M%S'), str(epochs)))
-        callbacks = [
-            EarlyStopping(monitor='loss', mode='min', verbose=1),
-            ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
-        ]
+        callbacks = None
+
+        if self.earlystopping:           
+            callbacks = [
+                EarlyStopping(monitor='loss', mode='min', verbose=1),
+                ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
+            ]
+        else:
+            callbacks = [
+                ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
+            ]
+
         history = self.model.fit(
             x,
             y,
@@ -346,7 +355,7 @@ class BaseModel():
                 #print('input inv :\n', curr_frame_inv.reshape(4,3))
                 #print('newaxis ', curr_frame[np.newaxis,:,:])
                 # input must be scaled curr_frame
-                y_pred = self.model.predict(curr_frame[np.newaxis,:,:])
+                y_pred = self.model.predict(curr_frame[np.newaxis,:,:], batch_size=self.batch_size)
 
                 
                 y_pred = np.reshape(y_pred, (1, 3))

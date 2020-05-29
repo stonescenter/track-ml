@@ -34,12 +34,20 @@ class ModelLSTM(BaseModel):
             input_timesteps = layer['input_timesteps'] if 'input_timesteps' in layer else None
             input_features = layer['input_features'] if 'input_features' in layer else None
             dropout = layer['dropout'] if 'dropout' in layer else None
+            stateful = layer['stateful'] if 'stateful' in layer else None
 
             #print('input_features %s input_timesteps %s ' % ( input_features, input_timesteps))
             print('batch_size: ', self.batch_size)
             if layer['type'] == 'lstm':
                 if dropout is None:
-                    self.model.add(LSTM(neurons, input_shape=(input_timesteps, input_features), return_sequences=return_seq))
+                    if stateful:
+                        #inp = Input(batch_shape= (batch_size, input_timesteps, input_features), name="input")
+                        # if stateful is True the shuffle parameter must be False
+                        self.stateful = stateful
+                        self.model.add(LSTM(neurons, batch_input_shape=(self.batch_size, input_timesteps, input_features),
+                            return_sequences=return_seq, stateful=stateful))
+                    else:
+                        self.model.add(LSTM(neurons, input_shape=(input_timesteps, input_features), return_sequences=return_seq))                    
                 else:
                     # Dropout can be applied to the input connection within the LSTM nodes.
                     #self.model.add(LSTM(neurons, batch_input_shape=(self.batch_size, input_timesteps, input_features),
