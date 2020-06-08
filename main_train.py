@@ -11,8 +11,8 @@ from sklearn.model_selection import train_test_split
 import datetime as dt
 
 from core.data.data_loader import *
-from core.models.lstm import ModelLSTM, ModelLSTMParalel, ModelLSTMCuDnnParalel
-from core.models.cnn import ModelCNN
+from core.models.lstm import ModelLSTM, ModelLSTMParallel, ModelLSTMCuDnnParalel
+from core.models.cnn import ModelCNN, ModelCNNParallel
 from core.models.mlp import ModelMLP
 from core.models.rnn import ModelRNN
 
@@ -44,10 +44,12 @@ def manage_models(config):
 
     if type_model == 'lstm': #simple LSTM
         model = ModelLSTM(config)
-    elif type_model == 'lstm-paralel':
-        model = ModelLSTMParalel(config)
+    elif type_model == 'lstm-parallel':
+        model = ModelLSTMParallel(config)
     elif type_model == 'cnn':
         model = ModelCNN(config)
+    elif type_model == 'cnn-parallel':
+        model = ModelCNNParallel(config)        
     elif type_model == 'mlp':
         model = ModelMLP(config)
     elif type_model == 'rnn':
@@ -66,23 +68,26 @@ def main():
     output_bin = configs['paths']['bin_dir']
     output_path = configs['paths']['save_dir']
     output_logs = configs['paths']['log_dir']
-    data_file = configs['data']['filename']
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
-    num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
-
+    t_features = configs['model']['layers'][0]['input_features']  # the number of features of a tensor
+    n_features = configs['data']['features']  # the number of features of data input
+    data_file = configs['data']['filename']
     split = configs['data']['train_split']  # the number of features of each hits
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
+
     model_name = configs['model']['name']
     optim = configs['model']['optimizer']
     arch = configs['model']['layers']
+    is_parallel = configs['model']['isparallel']
+    over_write = configs['model']['overwrite']
+    
     loadModel = configs['training']['load_model']
     validation_split = configs['training']['validation']
     epochs = configs['training']['epochs']
     batch = configs['training']['batch_size']
     shuffle_train = configs['training']['shuffle']
-
 
     if args.dataset is not None:
         data_file = args.dataset
@@ -119,24 +124,39 @@ def main():
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
     X_train, y_train = data.get_training_data(n_hit_in=time_steps, n_hit_out=1,
-                                 n_features=num_features, normalise=normalise)
+                                 n_features=n_features, normalise=normalise)
+
+    print('[Data] shape supervised: X%s y%s :' % (X_train.shape, y_train.shape))
 
     if normalise:
         data.save_scale_param(output_encry)
 
-    print('[Data] shape supervised: X%s y%s :' % (X_train.shape, y_train.shape))
+    if not is_parallel:
+        X_train = data.reshape3d(X_train, time_steps, t_features)
+    elif is_parallel:
+        X_train = np.reshape(X_train.values, (X_train.shape[0], time_steps, n_features))
+        #X_train = data.reshape3d(X_train, time_steps, n_features)
+        y_train = np.reshape(y_train.values, (y_train.shape[0], n_features))
+
+        X1 = X_train[:,:,0].reshape(X_train.shape[0], X_train.shape[1], t_features)
+        X2 = X_train[:,:,1].reshape(X_train.shape[0], X_train.shape[1], t_features)
+        X3 = X_train[:,:,2].reshape(X_train.shape[0], X_train.shape[1], t_features)
+
+        Y1 = y_train[:,0].reshape(y_train.shape[0],  t_features)
+        Y2 = y_train[:,1].reshape(y_train.shape[0],  t_features)
+        Y3 = y_train[:,2].reshape(y_train.shape[0],  t_features)
     
-    X_train = data.reshape3d(X_train, time_steps, num_features)
-
-    print('[Data] shape data X_train.shape:', X_train.shape)
+        X_train = [X1, X2, X3]
+        
+    
+    #print('[Data] shape data X_train.shape:', X_train.shape)
     print('[Data] shape data y_train.shape:', y_train.shape)
-
+    
     model = manage_models(configs)
 
     if model is None:
         print('Please instance model')
         return
-
 
     show_metrics = configs['training']['show_metrics']
     report = ""
@@ -148,16 +168,18 @@ def main():
 
     ident_name = model.name + "_" + coord 
         
-    if loadModel == False:
-        # if exist, please used the compiled model!
-        if model.exist_model(model.save_fnameh5):
-            print("[Warning] Please there is a previous model compiled (%s) for %s file." 
-                % (model.save_fnameh5,data_file))
-            return
+    if not loadModel:
+        if not over_write:
+            # if exist, please used the compiled model!
+            if model.exist_model(model.save_fnameh5):
+                print("[Warning] Please there is a previous model compiled (%s) for %s file." 
+                    % (model.save_fnameh5, data_file))
+                return
 
         model.build_model()
         save_fname = os.path.join(output_encry, 'architecture_%s.png' % ident_name)
         model.save_architecture(save_fname) 
+        
         # in-memory training
         history = model.train(
             x=X_train,
@@ -170,7 +192,7 @@ def main():
         #if show_metrics:
         report = evaluate_training(history, output_encry, ident_name)
 
-    elif loadModel == True:       
+    elif loadModel:       
         if not model.load_model():
             print ('[Error] please change the config file : load_model')
             return
