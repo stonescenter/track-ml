@@ -68,9 +68,9 @@ class ModelLSTM(BaseModel):
             if layer['type'] == 'activation':
                 self.model.add(Activation('linear'))
         
-        print(self.model.summary())
-        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
 
+        self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
+        print(self.model.summary())
         print('[Model] Model Compiled with structure:', self.model.inputs)
         #self.save_architecture(self.save_fname)     
         timer.stop()
@@ -122,10 +122,10 @@ class ModelLSTMCuDnnParalel(BaseModel):
         self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
         print(self.model.summary())
         print('[Model] Model Compiled with structure:', self.model.inputs)      
-        self.save_architecture(self.save_fname) 
+        #self.save_architecture(self.save_fname) 
         timer.stop()
 
-class ModelLSTMParalel(BaseModel):
+class ModelLSTMParallel(BaseModel):
     """A class for an building and inferencing an lstm model with cuDnnlstm"""
  
     def __init__(self, configs):
@@ -150,29 +150,33 @@ class ModelLSTMParalel(BaseModel):
             return_seq = layer['return_seq'] if 'return_seq' in layer else None
             input_timesteps = layer['input_timesteps'] if 'input_timesteps' in layer else None
             input_features = layer['input_features'] if 'input_features' in layer else None
+            dropout = layer['dropout'] if 'dropout' in layer else None
+            stateful = layer['stateful'] if 'stateful' in layer else None
 
             #create Neural Network
-            if layer['type'] == 'lstm-paralel':
+            if layer['type'] == 'lstm':
 
                 first_input = Input(shape=(input_timesteps, input_features))        
                 first_output = LSTM(neurons, return_sequences=return_seq, return_state=False)(first_input)
 
-                second_input = Input(shape=(input_timesteps, 1)) # without number of features, just with input_timesteps
+                second_input = Input(shape=(input_timesteps, input_features)) # without number of features, just with input_timesteps
                 second_output = LSTM(neurons, return_sequences=return_seq, return_state=False)(second_input)
 
-                output = concatenate([first_output, second_output], axis=-1)
+                third_input = Input(shape=(input_timesteps, input_features)) # without number of features, just with input_timesteps
+                third_output = LSTM(neurons, return_sequences=return_seq, return_state=False)(third_input)
+
+                output = concatenate([first_output, second_output, third_output])
 
             if layer['type'] == 'dense':
                 output = Dense(neurons, activation = activation)(output)
             if layer['type'] == 'dropout':
                 output = Dropout(dropout_rate)(output)
 
-        self.model = Model(inputs=[first_input, second_input], outputs=output)
+        self.model = Model(inputs=[first_input, second_input, third_input], outputs=output)
         self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'], metrics=configs['model']['metrics'])
         print(self.model.summary())
         print('[Model] Model Compiled with structure:', self.model.inputs)
-        self.save_architecture(self.save_fname) 
-
+        
         timer.stop()
 
 def create_Neural_Network(neurons):

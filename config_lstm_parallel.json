@@ -1,0 +1,64 @@
+{
+    "paths": {
+        "bin_dir": "/data/track-ml/eramia/compiled/",
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {
+        "filename": "./dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "cylindrical": false,
+        "num_hits": 10,
+        "features": 3
+
+    },
+    "training": {
+        "epochs": 18,
+        "batch_size": 24,
+        "validation": 0.2,
+        "save_model": true,
+        "load_model": false,
+        "use_gpu": true,
+        "show_metrics": false,
+        "shuffle": true,
+        "earlystopping": true
+    },
+    "testing": {
+        "type_optimization" : "nearest",
+        "normalise": false,
+        "tolerance": 0.01
+    },
+    "model": {
+        "name": "lstm-parallel",
+        "overwrite": true,        
+        "loss": "mse",
+        "metrics": ["acc"],
+        "optimizer": "adam",
+        "isparallel": true,
+        "layers": [
+            {
+                "type": "lstm",
+                "neurons": 500,
+                "input_timesteps": 4,
+                "input_features": 1,
+                "return_seq": false,
+                "stateful": false
+            },
+            {
+                "type": "dropout",
+                "rate": 0.25
+            },
+            {
+                "type": "dense",
+                "neurons": 64,
+                "activation": "relu"
+            },                                      
+            {
+                "type": "dense",
+                "neurons": 3,
+                "activation": "linear"
+            }
+        ]
+    }
+}
