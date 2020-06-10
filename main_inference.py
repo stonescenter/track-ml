@@ -9,8 +9,8 @@ import json
 
 import datetime as dt
 from core.data.data_loader import *
-from core.models.lstm import ModelLSTM, ModelLSTMParalel, ModelLSTMCuDnnParalel
-from core.models.cnn import ModelCNN
+from core.models.lstm import ModelLSTM, ModelLSTMParallel, ModelLSTMCuDnnParalel
+from core.models.cnn import ModelCNN, ModelCNNParallel
 from core.models.mlp import ModelMLP
 from core.models.rnn import ModelRNN
 from core.models.base import BagOfHits
@@ -45,10 +45,12 @@ def manage_models(config):
 
     if type_model == 'lstm': #simple LSTM
         model = ModelLSTM(config)
-    elif type_model == 'lstm-paralel':
+    elif type_model == 'lstm-parallel':
         model = ModelLSTMParalel(config)
     elif type_model == 'cnn':
         model = ModelCNN(config)
+    elif type_model == 'cnn-parallel':
+        model = ModelCNNParallel(config)        
     elif type_model == 'mlp':
         model = ModelMLP(config)
     elif type_model == 'rnn':
@@ -57,7 +59,7 @@ def manage_models(config):
     return model
 
 def main():
-
+    
     args = parse_args()
 
     # load configurations of model and others
@@ -71,7 +73,9 @@ def main():
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
     num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
     optim = configs['model']['optimizer']
-
+    type_model = configs['model']['name']    
+    is_parallel = configs['model']['isparallel']
+    
     split = configs['data']['train_split']  # the number of features of each hits
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
@@ -148,10 +152,15 @@ def main():
     print('[Data] shape data X_test.shape:', X_test.shape)
     print('[Data] shape data y_test.shape:', y_test.shape)
 
-    # convertimos a matriz do test em um vetor
-    X_test_ = data.reshape3d(X_test, time_steps, num_features)
-    y_test_ = data.reshape3d(y_test, 6, num_features)
 
+    if type_model == 'lstm' or type_model == 'cnn':
+        if not is_parallel:
+            # convertimos a matriz do test em um vetor
+            X_test_ = data.reshape3d(X_test, time_steps, num_features)
+            y_test_ = data.reshape3d(y_test, 6, num_features)
+    elif type_model == 'lstm-parallel' or type_model == 'cnn-parallel':
+        X_test_ = X_test
+        y_test_ = y_test
 
     print('[Data] Predicting dataset with input ...', X_test_.shape)
     
@@ -221,22 +230,33 @@ def main():
     sys.stdout = f        
     now = dt.datetime.now()
 
+    total_tracks = len(X_test)
+
     print("[Output] Results ")
     print("---Parameters--- ")
     print("\t Model Name    : ", model.name)
     print("\t Dataset       : ", model.orig_ds_name)
-    print("\t Tracks        : ", len(X_test))
+    print("\t Tracks        : ", total_tracks)
     print("\t Model saved   : ", model.save_fnameh5)
     print("\t Test date     : ", now.strftime("%d/%m/%Y %H:%M:%S")) 
     print("\t Coordenates   : ", coord) 
     print("\t Model Scaled   : ", model.normalise)
     print("\t Model Optimizer : ", optim)
     print("\t Prediction Opt  : ", type_opt)
-    print("\t Total correct %s with tolerance=%s: " % (correct, tolerance))
-    print("\t Total porcentage correct :", [(t*100)/len(X_test) for t in correct]) 
+    print("\t Total correct hits per layer  %s of %s tracks tolerance=%s: " % (correct, total_tracks, tolerance))
+    print("\t Total porcentage correct hits :", [str(round((t*100)/total_tracks, 2)) +"%" for t in correct]) 
 
-    
-    # metricas para nearest
+    # calculate the number of reconstructed tracks
+    true_tracks = np.concatenate([X_test, y_test], axis = 1)
+    pred_tracks = np.concatenate([X_test, y_predicted], axis = 1)
+    true_tracks = pd.DataFrame(true_tracks)
+    pred_tracks = pd.DataFrame(pred_tracks)
+
+    tracks = pd.concat([true_tracks, pred_tracks])
+    tracks_ = tracks[tracks.duplicated(keep='first')]
+    print('\t Reconstructed tracks: %s of %s tracks' % (tracks_.shape[0], total_tracks))
+
+    # metrics for nearest
     _,_,_,_,result = calc_score(data.reshape2d(y_test, 1),
                         data.reshape2d(y_predicted, 1), report=True)
     print(result)

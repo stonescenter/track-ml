@@ -52,7 +52,7 @@ def manage_models(config):
         model = ModelCNNParallel(config)        
     elif type_model == 'mlp':
         model = ModelMLP(config)
-    elif type_model == 'rnn':
+    elif type_model == 'simple-rnn':
         model = ModelRNN(config)        
 
     return model
@@ -77,7 +77,7 @@ def main():
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
 
-    model_name = configs['model']['name']
+    type_model = configs['model']['name']
     optim = configs['model']['optimizer']
     arch = configs['model']['layers']
     is_parallel = configs['model']['isparallel']
@@ -131,9 +131,14 @@ def main():
     if normalise:
         data.save_scale_param(output_encry)
 
-    if not is_parallel:
-        X_train = data.reshape3d(X_train, time_steps, t_features)
-    elif is_parallel:
+    if type_model == 'lstm' or type_model == 'cnn':
+        if not is_parallel:
+            X_train = data.reshape3d(X_train, time_steps, t_features)
+
+    elif type_model == 'lstm-parallel' or type_model == 'cnn-parallel':
+        if not is_parallel:
+            print('DEBUG')
+            return
         X_train = np.reshape(X_train.values, (X_train.shape[0], time_steps, n_features))
         #X_train = data.reshape3d(X_train, time_steps, n_features)
         y_train = np.reshape(y_train.values, (y_train.shape[0], n_features))
