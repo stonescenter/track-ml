@@ -1,7 +1,7 @@
 # Track Particle
 This project is the first version of Track Particles problem and it is part of [SPRACE](https://sprace.org.br/) sponsored by [Serrapilheira](https://serrapilheira.org/). 
 <p align="center">
-	 <img width="450" height="400" src="./img/internal_reconstruction_3d.png"></img>
+	 <img width="450" height="400" src="./imgs/internal_reconstruction_3d.png"></img>
 </p>
 
 ## Run
@@ -30,7 +30,7 @@ We are using regressions metrics for accuracy of models. We shows 3 kinds of met
          Reconstructed tracks: 74 of 528 tracks
 
 ```
-
+Above output shows the scoring per layer for example 48% at first layer with 74 tracks reconstructed of 528 tracks.
 The geral accuracy per layer:
 
 ```
@@ -65,14 +65,17 @@ layer  7
 ## Vizualization
 Open the plot_prediction.ipynb file at notebooks directory to see the plots.
 
+you can see a plot with all hits
 <p align="center">
-         <img width="450" height="400" src="./img/all_hits_per_layer.png"></img>
+         <img width="450" height="400" src="./imgs/all_hits_per_layer.png"></img>
 </p>
 
+The next plot is the prediction hits.
 <p align="center">
-         <img width="450" height="400" src="./img/all_tracks_pred.png"></img>
+         <img width="450" height="400" src="./imgs/all_tracks_pred.png"></img>
 </p>
 
+This plot is 10 tracks reconstructed.
 <p align="center">
-         <img width="450" height="400" src="./img/internal_reconstruction_cartesian_zy.png"></img>
+         <img width="450" height="400" src="./imgs/internal_reconstruction_cartesian_zy.png"></img>
 </p>
