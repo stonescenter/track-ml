@@ -9,16 +9,19 @@
         "train_split": 0.80,
         "normalise": true,
         "cylindrical": false,
-        "num_hits": 10        
+        "num_hits": 10,
+        "features": 3        
     },
     "training": {
-        "epochs": 10,
+        "epochs": 15,
         "batch_size": 18,
         "validation": 0.2,
         "save_model": true,
-        "load_model": true,
+        "load_model": false,
         "use_gpu": true,
-        "show_metrics": false
+        "show_metrics": false,
+        "shuffle": true,
+        "earlystopping": true        
     },
     "testing": {
         "type_optimization" : "normal",
@@ -27,8 +30,10 @@
     },
     "model": {
         "name": "cnn",
+        "overwrite": true,
+        "isparallel": false,        
         "loss": "mse",
-        "metrics": ["mae","acc"],
+        "metrics": ["acc"],
         "optimizer": "adam",
         "layers": [
             {

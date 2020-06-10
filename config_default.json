@@ -18,13 +18,14 @@
         "save_model": true,
         "load_model": false,
         "use_gpu": true,
-        "show_metrics": false        
+        "show_metrics": false,
+        "shuffle": true,
+        "earlystopping": false
     },
     "testing": {
         "type_optimization" : "nearest",
         "normalise": false,
         "tolerance": 0.02
-
     },    
     "model": {
         "name": "lstm",

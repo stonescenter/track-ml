@@ -6,37 +6,43 @@
     },
     "data": {
         "filename": "/data/track-ml/eramia/dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
-        "train_split": 0.70,
+        "train_split": 0.80,
         "normalise": true,
-        "cylindrical": true,
-        "num_hits": 10
+        "cylindrical": false,
+        "num_hits": 10,
+        "features": 3
     },
     "training": {
-        "epochs": 2,
-        "batch_size": 32,
+        "epochs": 21,
+        "batch_size": 6,
+        "validation": 0.2,
         "save_model": true,
-        "load_model": true,
+        "load_model": false,
         "use_gpu": true,
-        "show_metrics": false
+        "show_metrics": false,
+        "shuffle": true,
+        "earlystopping": true
     },
     "testing": {
-        "type_prediction" : "nearest",
+        "type_optimization" : "normal",
         "normalise": false,
-        "tolerance": 0.02
-
+        "tolerance": 0.00
     },
     "model": {
         "name": "lstm",
+        "overwrite": true,
+        "isparallel": false,                
         "loss": "mse",
-        "metrics": ["mae","acc"],
-        "optimizer": "rmsprop",
+        "metrics": ["acc"],
+        "optimizer": "adam",
         "layers": [
             {
                 "type": "lstm",
-                "neurons": 800,
+                "neurons": 100,
                 "input_timesteps": 4,
                 "input_features": 3,
-                "return_seq": true
+                "return_seq": true,
+                "stateful": false
             },
             {
                 "type": "dropout",
@@ -44,24 +50,20 @@
             },
             {
                 "type": "lstm",
-                "neurons": 800,
+                "neurons": 100,
                 "input_timesteps": 4,
                 "input_features": 3,
                 "return_seq": false
             },
             {
-                "type": "dropout",
-                "rate": 0.25
-            }, 
-            {
                 "type": "dense",
                 "neurons": 18,
-                "activation": "relu"
-            },              
+                "activation": "linear"
+            },
             {
                 "type": "dense",
                 "neurons": 3,
-                "activation": "relu"
+                "activation": "linear"
             }
         ]
     }

@@ -10,7 +10,7 @@
         "normalise": true,
         "cylindrical": false,
         "num_hits": 10,
-        "features": 3                
+        "features": 3
     },
     "training": {
         "epochs": 15,
@@ -21,7 +21,7 @@
         "use_gpu": true,
         "show_metrics": false,
         "shuffle": true,
-        "earlystopping": true    
+        "earlystopping": true
     },
     "testing": {
         "type_optimization" : "nearest",
@@ -34,7 +34,7 @@
         "loss": "mse",
         "metrics": ["acc"],
         "optimizer": "adam",
-        "isparallel": true,        
+        "isparallel": true,
         "layers": [
             {
                 "type": "cnn",
