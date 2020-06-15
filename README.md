@@ -7,11 +7,11 @@ This project is the first version of Track Particles problem and it is part of [
 ## Run
 To run:
 1. Clone our repository
-2. Configure your conda envirotment with env.yml file
-3. There are many scripts to test the problem with diferents models(MLP, CNN, LSTM, CNN-parallel and others). For example: `python main_train.py --config config_lstm.json `. It will create a model with a default LSTM architecture in json file. You can inference data test with ` main_inference.py --config config_lstm.json `.
+2. Configure your conda environtment with env.yml file
+3. There are many scripts to test with diferents models(MLP, CNN, LSTM, CNN-parallel and others). For example: `python main_train.py --config config_lstm.json`. It will create a model with a default LSTM configuration in a json file. You can inference data test with ` python main_inference.py --config config_lstm.json `.
 
 ## Accuracy of Algorithm
-We are using regressions metrics for accuracy of models. We shows 3 kinds of metrics. The first is the geral metrics by layer, it measures all real hits and predicted. The second are axes metrics that measures current layer and the final is an score of correct hits by layer and quantity of tracks reconstructed. For example, see the accuracy of training algorithm is in `results/encrypt_name/results-train.txt`  file and accuracy and tracks reconstructed using tha algorithm is in `results/encrypt_name/results-test.txt` file. 
+We are using regressions metrics for accuracy of models. We shows 3 kinds of metrics. The first is the geral metrics per layer, it measures the error between real and predicted hits. The second are axes metrics that measures coordinate erros per layer and the final is an score of quantity of correct hits by layers and quantity of tracks reconstructed. For example, to see the accuracy of training algorithm, go to `results/encrypt_name/results-train.txt` file and accuracy of testing and tracks reconstructed using that algorithm is in `results/encrypt_name/results-test.txt` file. 
 
 ```
 [Output] Results 
@@ -30,8 +30,9 @@ We are using regressions metrics for accuracy of models. We shows 3 kinds of met
          Reconstructed tracks: 74 of 528 tracks
 
 ```
-Above output shows the scoring per layer for example 48% at first layer with 74 tracks reconstructed of 528 tracks.
-The geral accuracy per layer:
+Above output shows the scoring per layer for example 48% with 256 hits matched at first layer, the results are 74 tracks reconstructed of 528 tracks. We also write other info like what kind of coordinate, if we use nearest optimization, how many epochs, batch , model name etc.
+
+The geral accuracy per layer are:
 
 ```
 ---Regression Scores--- 
@@ -63,19 +64,19 @@ layer  7
 ```
 
 ## Vizualization
-Open the plot_prediction.ipynb file at notebooks directory to see the plots.
+Open the plot_prediction.ipynb file at notebooks directory to see the plots for results.
 
-you can see a plot with all hits
+The next plot shows all hits.
 <p align="center">
-         <img width="450" height="400" src="./imgs/all_hits_per_layer.png"></img>
+         <img width="600" height="450" src="./imgs/all_hits_per_layer.png"></img>
 </p>
 
-The next plot is the prediction hits.
+The next plot is the prediction of all hits.
 <p align="center">
-         <img width="450" height="400" src="./imgs/all_tracks_pred.png"></img>
+         <img width="600" height="450" src="./imgs/all_tracks_pred.png"></img>
 </p>
 
 This plot is 10 tracks reconstructed.
 <p align="center">
-         <img width="450" height="400" src="./imgs/internal_reconstruction_cartesian_zy.png"></img>
+         <img width="600" height="450" src="./imgs/internal_reconstruction_cartesian_zy.png"></img>
 </p>
