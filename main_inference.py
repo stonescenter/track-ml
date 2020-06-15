@@ -71,7 +71,8 @@ def main():
     data_file = configs['data']['filename']
 
     time_steps =  configs['model']['layers'][0]['input_timesteps']  # the number of points or hits
-    num_features = configs['model']['layers'][0]['input_features']  # the number of features of each hits
+    t_features = configs['model']['layers'][0]['input_features']  # the number of features of a tensor
+    n_features = configs['data']['features']  # the number of features of data input
     optim = configs['model']['optimizer']
     type_model = configs['model']['name']    
     is_parallel = configs['model']['isparallel']
@@ -82,7 +83,10 @@ def main():
     num_hits = configs['data']['num_hits']
     type_opt = configs['testing']['type_optimization']
     tolerance = configs['testing']['tolerance']
+    metric = configs['testing']['metric']
+
     loadModel = configs['training']['load_model']
+
 
     # we set preference to params by bash commands
     if args.dataset is not None:
@@ -134,7 +138,6 @@ def main():
         print('[Error] this scripts don´t allow train models. Change the load_model parameter to true.')
         return
 
-
     # prepare data set
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
@@ -142,7 +145,7 @@ def main():
     x_scaler, y_scaler = data.load_scale_param(output_encry)
 
     X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
-                                       n_features=num_features, normalise=False,
+                                       n_features=n_features, normalise=False,
                                        xscaler=x_scaler, yscaler=y_scaler)
 
     # a short dataset
@@ -156,10 +159,10 @@ def main():
     if type_model == 'lstm' or type_model == 'cnn':
         if not is_parallel:
             # convertimos a matriz do test em um vetor
-            X_test_ = data.reshape3d(X_test, time_steps, num_features)
-            y_test_ = data.reshape3d(y_test, 6, num_features)
+            X_test_ = data.reshape3d(X_test, time_steps, n_features)
+            y_test_ = data.reshape3d(y_test, 6, n_features)
     elif type_model == 'lstm-parallel' or type_model == 'cnn-parallel':
-        X_test_ = X_test
+        X_test_ = data.reshape3d(X_test, time_steps, n_features)
         y_test_ = y_test
 
     print('[Data] Predicting dataset with input ...', X_test_.shape)
@@ -169,32 +172,42 @@ def main():
     #pred_full_res, correct = model.predict_full_sequences_nearest(X_test_, y_test, seq_len)
 
     correct = [0]
+    correct_nearest = [0]
     y_pred = None
     if cylindrical:
         if type_opt == "normal":
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
-        elif type_opt == "nearest":                 
+        elif type_opt == "nearest":
             # get data in coord cartesian
             data_tmp = Dataset(data_file, split, False, num_hits, KindNormalization.Zscore)
 
             # for cylindrical True always we need the data as original values with normalise False
             X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
-                                             n_features=num_features, normalise=False)        
-            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
-                                                                 normalise=normalise, cylindrical=True,
-                                                                 verbose=False, tol=tolerance)
-
+                                             n_features=n_features, normalise=False)
+            if not is_parallel:       
+                y_pred, correct_nearest, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
+                                                                     normalise=normalise, cylindrical=True,
+                                                                     verbose=False, tol=tolerance)
+            else:
+                y_pred, correct_nearest, correct = model.predict_full_sequences_nearest_parallel(X_test_, y_test, data, BagOfHits.Layer, y_test_aux,
+                                                                t_steps=time_steps, t_features=t_features, n_features=n_features, num_hits=seq_len,  
+                                                                normalise=normalise, cylindrical=True, verbose=False, tol=tolerance, metric=metric)
     else:
         if type_opt == "normal":
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
-        elif type_opt == "nearest": 
-            y_pred, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, seq_len, 
-                                                             normalise=normalise, cylindrical=False,
-                                                             verbose=False, tol=tolerance)
+        elif type_opt == "nearest":
+            if not is_parallel:          
+                y_pred, correct_nearest, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, seq_len, 
+                                                                 normalise=normalise, cylindrical=False,
+                                                                 verbose=False, tol=tolerance)
+            else:
+                y_pred, correct_nearest, correct = model.predict_full_sequences_nearest_parallel(X_test_, y_test, data, BagOfHits.Layer, None,
+                                                                t_steps=time_steps, t_features=t_features, n_features=n_features, num_hits=seq_len,  
+                                                                normalise=normalise, cylindrical=False, verbose=False, tol=tolerance, metric=metric)
         else:
             print('no algorithm defined to predict')
 
-    y_predicted = convert_vector_to_matrix(y_pred, num_features, seq_len)
+    y_predicted = convert_vector_to_matrix(y_pred, n_features, seq_len)
     y_predicted = to_frame(y_predicted)
 
     print('[Data] shape y_test ', y_test.shape)
@@ -219,7 +232,7 @@ def main():
     ident_name = model.name + "_" + coord 
 
     # save correct hits
-    correct_new = list(correct)
+    correct_new = list(correct_nearest)
     correct_new.append(tolerance)
     save_numpy_values(correct_new, output_encry, 'correct_%s.npy' % ident_name)
 
@@ -243,8 +256,11 @@ def main():
     print("\t Model Scaled   : ", model.normalise)
     print("\t Model Optimizer : ", optim)
     print("\t Prediction Opt  : ", type_opt)
-    print("\t Total correct hits per layer  %s of %s tracks tolerance=%s: " % (correct, total_tracks, tolerance))
-    print("\t Total porcentage correct hits :", [str(round((t*100)/total_tracks, 2)) +"%" for t in correct]) 
+    print("\t Distance metric : ", metric)
+    print("\t Correct hits per layer Nearest %s of %s tracks tolerance=%s: " % (correct_nearest, total_tracks, tolerance))
+    print("\t Porcentage correct hits :", [str(round((t*100)/total_tracks, 2)) +"%" for t in correct_nearest]) 
+    print("\t Correct hits per layer with Normal %s of %s tracks tolerance=%s: " % (correct, total_tracks, tolerance))
+    print("\t Porcentage correct hits :", [str(round((t*100)/total_tracks, 2)) +"%" for t in correct])     
 
     # calculate the number of reconstructed tracks
     true_tracks = np.concatenate([X_test, y_test], axis = 1)

@@ -313,6 +313,7 @@ class BaseModel():
         # bag_of_hits  
         bag_of_hits_all = np.array(convert_matrix_to_vec(y_test, num_features))
 
+        count_correct_nearest = np.zeros(num_hits)
         count_correct = np.zeros(num_hits)
         begin_idx, end_idx = 0, 0
         num_boh = 6
@@ -391,8 +392,12 @@ class BaseModel():
                 # if curr_hit is in cartesian coord, near_pred must be in cartesian coord too
                 # very small numbers are differents or equals
                 if np.isclose(curr_hit, near_pred, atol=tol).all():
-                    count_correct[i]+=1
-                    
+                    count_correct_nearest[i]+=1
+
+                # counting with predicted without nearest hit
+                if np.isclose(curr_hit, y_pred_orig, atol=tol).all():
+                    count_correct[i]+=1 
+
                 if verbose:
                     print('pred:', y_pred)
                     print('inv pred:', y_pred_orig)
@@ -429,9 +434,164 @@ class BaseModel():
         print('[Model] Prediction Finished.')
         timer.stop()
 
-        return pred_sequences, count_correct
+        return pred_sequences, count_correct_nearest, count_correct
 
- 
+    def predict_full_sequences_nearest_parallel(self, x_test, y_test, data, bag_of_hits, y_test_aux=None, 
+                                                t_steps=4, t_features=1, n_features=3, num_hits=6,                                          
+                                                normalise=False, cylindrical=False, verbose=False, tol=0.01, metric = 'euclidean'):
+        
+        '''
+            This function shift the window by 1 new prediction each time, re-run predictions on new window
+            parameters:
+            x_test : X test data normaly not scaled (4 hits)
+            y_test : y test data, normaly not scaled (6 hits)
+            num_hits : how many hits by y_test
+            normalise : it param says the input data must be scaled or not
+        
+        '''
+        
+        timer = Timer()
+        timer.start()
+
+        print('[Model] Predicting Sequences with Nearest Started')
+
+        total = len(x_test)
+
+        pred_sequences = []
+        pred_sequences_orig = []
+        
+        decimals = 2
+       
+        # covert to original values
+        #y_true = data.inverse_transform_test_y(y_test)
+        #y_true = y_true.round(decimals)
+        
+        #change the dataset by cartesian coordinates
+        if cylindrical:
+            y_test = y_test_aux
+        else:
+            y_test = y_test
+            
+        # bag_of_hits  
+        bag_of_hits_all = np.array(convert_matrix_to_vec(y_test, n_features))
+
+        count_correct = np.zeros(num_hits)
+        count_correct_nearest = np.zeros(num_hits)
+        begin_idx, end_idx = 0, 0
+        num_boh = 6
+        
+        for j in range(total):
+            curr_frame = x_test[j]
+            # bag_of_hit by track
+            curr_track = np.array(y_test.iloc[j,0:]).reshape(num_hits, n_features)
+            
+            if verbose:
+                print('curr_track %s , %s:' % (j , curr_track))
+
+            predicted = []
+            predicted_orig = []
+            begin = 0
+            for i in range(num_hits):
+                # bag_of_hit by layer
+                end = begin+n_features
+
+                curr_layer = np.array(y_test.iloc[0:,begin:end]).reshape(total, n_features)
+                curr_hit = curr_track[i]
+                begin = end
+                
+                if verbose:
+                    # primeira esta em originais
+                    print('input:\n', curr_frame)
+                    
+                if normalise:
+                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1,12)))
+                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values.flatten())
+                    curr_frame_orig = np.reshape(curr_frame_orig, (t_steps, n_features))
+                    curr_frame = np.reshape(curr_frame, (t_steps, n_features))
+                else:
+                    curr_frame = curr_frame
+                    curr_frame_orig = curr_frame
+
+                x = curr_frame[:, 0].reshape((1, t_steps, t_features))
+                y = curr_frame[:, 1].reshape((1, t_steps, t_features))
+                z = curr_frame[:, 2].reshape((1, t_steps, t_features))
+                
+                if verbose:
+                    print('input:\n', curr_frame)
+                    #print('input orig:\n', curr_frame_orig)
+                
+                #y_pred = model.model.predict(curr_frame[np.newaxis,:,:])
+                y_pred = self.model.predict([x, y, z])
+
+                #y_pred = np.reshape(y_pred, (1, 3))
+                if normalise:
+                    y_pred_orig = data.inverse_transform_y(y_pred)
+                else:
+                    y_pred_orig = y_pred
+
+                y_pred_orig = np.reshape(y_pred_orig, (1, 3))
+
+                if bag_of_hits == BagOfHits.All:
+                    hits = bag_of_hits_all
+                elif bag_of_hits == BagOfHits.Track:
+                    hits = curr_track
+                elif bag_of_hits == BagOfHits.Layer:                    
+                    hits = curr_layer
+                
+                if cylindrical:
+                    rho, eta, phi = y_pred_orig[0][0], y_pred_orig[0][1], y_pred_orig[0][2]
+                    #print(rho,eta,phi)
+                    x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+                    #print(x,y,z)
+                    y_pred_orig[0][0] = x
+                    y_pred_orig[0][1] = y
+                    y_pred_orig[0][2] = z
+                    
+                        
+                dist = distance.cdist(hits, y_pred_orig, metric)
+                idx = np.argmin(dist)
+                near_pred = hits[idx]
+
+                # if curr_hit is in cartesian coord, near_pred must be in cartesian coord too
+                if np.isclose(curr_hit, near_pred, atol=tol).all():
+                    count_correct_nearest[i]+=1
+                    
+                # counting with predicted without nearest hit
+                if np.isclose(curr_hit, y_pred_orig, atol=tol).all():
+                    count_correct[i]+=1 
+                    
+                if verbose:
+                    print('pred:', y_pred)
+                    print('inv pred:', y_pred_orig)
+                    print('current:', curr_hit)
+                    print('nearest:', near_pred)
+                
+                if cylindrical:
+                    x, y, z = near_pred[0], near_pred[1], near_pred[2]
+                    #print(x,y,z)
+                    rho, eta, phi = convert_xyz_to_rhoetaphi(x, y, z)
+                    #print(rho,eta,phi)
+                    near_pred[0] = rho
+                    near_pred[1] = eta
+                    near_pred[2] = phi
+                         
+                #near adiciona em valores originaeis
+                predicted.append(near_pred)
+                           
+                curr_frame = curr_frame_orig[1:]
+                curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
+                           
+            pred_sequences.append(predicted)
+            #pred_sequences_orig.append(predicted_orig)
+            
+            if verbose:
+                if j == 3: break
+                    
+        print('[Model] Prediction Finished.')
+        timer.stop()
+
+        return pred_sequences, count_correct_nearest, count_correct
+
     def nearest_hit(self, hit, hits,
                              silent = True,
                              dist_hit = False,
