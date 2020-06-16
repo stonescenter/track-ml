@@ -46,7 +46,7 @@ def manage_models(config):
     if type_model == 'lstm': #simple LSTM
         model = ModelLSTM(config)
     elif type_model == 'lstm-parallel':
-        model = ModelLSTMParalel(config)
+        model = ModelLSTMParallel(config)
     elif type_model == 'cnn':
         model = ModelCNN(config)
     elif type_model == 'cnn-parallel':
@@ -270,7 +270,7 @@ def main():
 
     tracks = pd.concat([true_tracks, pred_tracks])
     tracks_ = tracks[tracks.duplicated(keep='first')]
-    print('\t Reconstructed tracks: %s of %s tracks' % (tracks_.shape[0], total_tracks))
+    print('\t Reconstructed tracks: %s of %s tracks (%s)' % (tracks_.shape[0], total_tracks, (tracks_.shape[0]*100)/total_tracks))
 
     # metrics for nearest
     _,_,_,_,result = calc_score(data.reshape2d(y_test, 1),
