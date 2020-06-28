@@ -219,7 +219,7 @@ def main():
     print("\t Model scaled      : ", model.normalise)
     print("\t Model Optimizer   : ", optim)
     print("\t Model batch_size  : ", batch)
-    print("\t Model epochs      : ", epochs)
+    print("\t Model epochs      : %s  stopped %s " % (epochs, model.stopped_epoch))
     print("\t Accuracy          : ", report)
     print("\t Architecture      : ", arch)
     

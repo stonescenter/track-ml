@@ -36,6 +36,7 @@ class BaseModel():
         self.batch_size = configs['training']['batch_size']
         self.validation = configs['training']['validation']
         self.earlystopping = configs['training']['earlystopping']
+        self.stopped_epoch = 0
 
         path_to, filename = os.path.split(configs['data']['filename'])
         #print(get_unique_name(filename))
@@ -132,7 +133,12 @@ class BaseModel():
 
         if self.save == True:
             self.save_model(self.save_fnameh5)             
-       
+
+        # what epocks the algorith stopped
+        if self.earlystopping:        
+            self.stopped_epoch = callbacks[0].stopped_epoch
+            
+        print('[Model] Model training stopped at %s epoch' % self.stopped_epoch)
         print('[Model] Training Completed. Model h5 saved as %s' % self.save_fnameh5)
         print('[Model] Model train with structure:', self.model.inputs)
         timer.stop()
