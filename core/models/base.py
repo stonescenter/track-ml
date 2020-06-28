@@ -297,14 +297,13 @@ class BaseModel():
 
         pred_sequences = []
         pred_sequences_orig = []
-        
-        decimals = 2
-       
+               
         # covert to original values
         #y_true = data.inverse_transform_test_y(y_test)
         #y_true = y_true.round(decimals)
         
         #change the dataset by cartesian coordinates
+        y_test_cpy = y_test        
         if cylindrical:
             y_test = y_test_aux
         else:
@@ -333,6 +332,7 @@ class BaseModel():
                 # bag_of_hit by layer
                 end = begin+num_features
                 curr_layer = np.array(y_test.iloc[0:,begin:end]).reshape(total, num_features)
+                curr_layer_polar = np.array(y_test_cpy.iloc[0:,begin:end]).reshape(total, n_features)
                 curr_hit = curr_track[i]
                 begin = end
                 
@@ -412,7 +412,11 @@ class BaseModel():
                     near_pred[0] = rho
                     near_pred[1] = eta
                     near_pred[2] = phi
-                    
+
+                # we change to the original input 
+                if cylindrical:
+                    near_pred = curr_layer_polar[idx]
+
                 #curr_track = np.delete(curr_track, idx, 0)
                 #near_pred_orig, idx = model.nearest_hit(y_pred_orig, bag_of_hits, silent=True) 
                         
@@ -459,15 +463,15 @@ class BaseModel():
 
         pred_sequences = []
         pred_sequences_orig = []
-        
-        decimals = 2
-       
+               
         # covert to original values
         #y_true = data.inverse_transform_test_y(y_test)
         #y_true = y_true.round(decimals)
         
         #change the dataset by cartesian coordinates
+        y_test_cpy = y_test
         if cylindrical:
+            #if cylindrical is true we use cartesian coordinates
             y_test = y_test_aux
         else:
             y_test = y_test
@@ -496,6 +500,8 @@ class BaseModel():
                 end = begin+n_features
 
                 curr_layer = np.array(y_test.iloc[0:,begin:end]).reshape(total, n_features)
+                curr_layer_polar = np.array(y_test_cpy.iloc[0:,begin:end]).reshape(total, n_features)
+
                 curr_hit = curr_track[i]
                 begin = end
                 
@@ -538,6 +544,7 @@ class BaseModel():
                 elif bag_of_hits == BagOfHits.Layer:                    
                     hits = curr_layer
                 
+                # if output of predict is cylindrical, we convert to cartesian temporaly to calculate distance
                 if cylindrical:
                     rho, eta, phi = y_pred_orig[0][0], y_pred_orig[0][1], y_pred_orig[0][2]
                     #print(rho,eta,phi)
@@ -547,7 +554,7 @@ class BaseModel():
                     y_pred_orig[0][1] = y
                     y_pred_orig[0][2] = z
                     
-                        
+                # the distances is calculate with always with cartesian
                 dist = distance.cdist(hits, y_pred_orig, metric)
                 idx = np.argmin(dist)
                 near_pred = hits[idx]
@@ -565,7 +572,7 @@ class BaseModel():
                     print('inv pred:', y_pred_orig)
                     print('current:', curr_hit)
                     print('nearest:', near_pred)
-                
+                '''
                 if cylindrical:
                     x, y, z = near_pred[0], near_pred[1], near_pred[2]
                     #print(x,y,z)
@@ -574,7 +581,11 @@ class BaseModel():
                     near_pred[0] = rho
                     near_pred[1] = eta
                     near_pred[2] = phi
-                         
+                '''         
+                # we change to the original input 
+                if cylindrical:
+                    near_pred = curr_layer_polar[idx]
+
                 #near adiciona em valores originaeis
                 predicted.append(near_pred)
                            

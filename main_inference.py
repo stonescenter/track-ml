@@ -142,6 +142,7 @@ def main():
     data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
 
     # we need to load a previous distribution of training data. If we have testing stage divided
+    # pay attention x_scaler and y_scaler have the same distribution normalized of training stage
     x_scaler, y_scaler = data.load_scale_param(output_encry)
 
     X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
