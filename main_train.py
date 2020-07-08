@@ -172,7 +172,8 @@ def main():
         coord = 'xyz'
 
     ident_name = model.name + "_" + coord 
-        
+    timer = Timer()
+    
     if not loadModel:
         if not over_write:
             # if exist, please used the compiled model!
@@ -184,7 +185,9 @@ def main():
         model.build_model()
         save_fname = os.path.join(output_encry, 'architecture_%s.png' % ident_name)
         model.save_architecture(save_fname) 
-        
+
+
+        timer.start()        
         # in-memory training
         history = model.train(
             x=X_train,
@@ -197,6 +200,7 @@ def main():
         #if show_metrics:
         report = evaluate_training(history, output_encry, ident_name)
 
+        timer.stop()
     elif loadModel:       
         if not model.load_model():
             print ('[Error] please change the config file : load_model')
@@ -215,7 +219,7 @@ def main():
     print("\t Total tracks      : ", len(X_train))
     print("\t Path saved        : ", model.save_fnameh5) 
     print("\t Coordenate type   : ", coord) 
-    print("\t Compiled date     : ", now.strftime("%d/%m/%Y %H:%M:%S"))    
+    print("\t Compiled date     : %s taken %s" % (timer.start_dt.strftime("%d/%m/%Y %H:%M:%S"), timer.taken))    
     print("\t Model scaled      : ", model.normalise)
     print("\t Model Optimizer   : ", optim)
     print("\t Model batch_size  : ", batch)
