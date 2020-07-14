@@ -55,14 +55,14 @@ def main():
 	print('path:', data_file)
 	print('encry:', encryp_ds_name)
 
-    if cylindrical:
-        coord = 'cylin'
-    else:
-        coord = 'xyz'
+	if cylindrical:
+		coord = 'cylin'
+	else:
+		coord = 'xyz'
 
 	if normalise:
-	    data.save_scale_param(output_encry)
-	    print('Data distribution saved with using %s', coord)
+		data.save_scale_param(output_encry)
+		print('Data distribution saved with using %s', coord)
 	else:
 		print('No data distribution saved')
 
