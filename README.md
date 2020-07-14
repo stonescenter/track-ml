@@ -1,25 +1,24 @@
 # Track Particle
-This project investigate Machine Learning algorithms to Particle Track reconstruction problems at LHC, it is part of [SPRACE](https://sprace.org.br/) sponsored by [Serrapilheira](https://serrapilheira.org/). 
-<p align="center">
-	 <img width="500" height="400" src="./imgs/internal_reconstruction_3d.png"></img>
-</p>
+This project investigate Machine Learning techniques to Particle Track reconstruction problems to HEP, it is part of [SPRACE](https://sprace.org.br/) sponsored by [Serrapilheira](https://serrapilheira.org/). This is a work flow of proposal.
 
-We use different Machine Learning tecnhiques to resolve this big problem in the physics community. If you want to reproduce our results, we wrote some general steps. If you have some ideas our suggestations, please write are welcome.
+![](imgs/work_flow.png)
+
+We use different Machine Learning tecnhiques to resolve this big problem in the physics community. If you want to reproduce our results, we have written some general steps. You are welcome, if you have some ideas our suggestations, please let us know.
 
 # Setup
 ## Environment
 You need to install [miniconda](https://docs.conda.io/en/latest/miniconda.html) before on a linux system
 1. Configure your conda environtment with env.yml file.
-```
-conda env create -f env.yml
-conda activate trackml
+```sh
+$ conda env create -f env.yml
+$ conda activate trackml
 ```
 
 ## Intallation
 To run:
 1. Clone the repository
-```
-git clone https://github.com/SPRACE/track-ml.git
+```sh
+$ git clone https://github.com/SPRACE/track-ml.git
 ```
 2. go to `track-ml` directory created
 
@@ -44,35 +43,35 @@ A short datasets are in `dataset`  directory.
 # Running
 ## Training
 There are some predefined scripts to train diferents models (MLP, CNN, LSTM, CNN-parallel and others). If you need to change the parameters then change the config_lstm.json file. We use an internal barrel as dataset, this dataset is previously transformed and linked in json file:
-```
-python main_train.py --config config_parallel_lstm.json
+```sh
+$ python main_train.py --config config_parallel_lstm.json
 ```
 There are other configurations for example a CNN model:
 
-```
-python main_train.py --config config_parallel_cnn.json
+```sh
+$ python main_train.py --config config_parallel_cnn.json
 ```
 
 ## Inference
 
 You can inference data test:
-```
-python main_inference.py --config config_parallel_lstm.json`
+```sh
+$ python main_inference.py --config config_parallel_lstm.json
 ```
 This will produce a `results/encrypt_name/results-test.txt` file. 
 
 
 # Performance
 ## Accuracy of Algorithm
-We are using regressions metrics for accuracy of models. We shows 2 groups of metrics.
+We are using regressions metrics for accuracy of models. We show 2 groups of metrics.
 
-- The principal metrics is a scoring. Scoring counts how many correct hits were found per layer and comparate with original truth hits. Finally we count the quantity of tracks reconstructed.
+- The principal metrics is a scoring. Scoring counts how many correct hits were found per layer and comparates with original truth hits. Finally we count the quantity of tracks reconstructed.
 
-- The other metrics are regression metrics, we measures the error between real and predicted hits per layer. 
+- The other metrics are regression metrics, we measure the error between real and predicted hits per layer. 
 
 For example, to see the accuracy of training algorithm, go to `results/encrypt_name/results-train.txt` file and the scoring of correct and tracks reconstructed go to `results/encrypt_name/results-test.txt` file. 
 
-The output of test file:
+Output test file:
 ```
 [Output] Results 
 ---Parameters--- 
@@ -90,7 +89,7 @@ The output of test file:
          Reconstructed tracks: 74 of 528 tracks
 
 ```
-Above output shows the scoring per layer for example 48% with 256 hits were matched at the first layer, results are 74 tracks reconstructed of 528 tracks. We also write other info like what kind of coordinate, if we use nearest optimization, epochs, batch, optimazir model name etc.
+Above output shows scoring per layer for example 48% with 256 hits were matched at the first layer, results are 74 tracks reconstructed of 528 tracks(it is a short dataset just). We also write other info like what kind of coordinate, if we use the nearest optimization, epochs, batchs, optimazer used, model name etc.
 
 Regression metrics per layer are:
 
@@ -122,25 +121,25 @@ layer  7
         Root Mean Square Error(RMSE) = 11.877
         Mean Absolute Error   (MAE) = 5.285
 ```
-The last output shows 4 metrics.
+The last output shows one geral metric for all hits and four (R^2, MSE, RMSE, MAE) metrics per layer.
 
 
 ## Vizualization
-If you want to see the results with plots, go to the plot_prediction.ipynb file at `notebooks` directory for results.
+If you want to see the results with plots, go to the plot_prediction.ipynb file at `notebooks` directory.
 
 This plot is 10 tracks reconstructed.
 <p align="center">
-         <img width="600" height="450" src="./imgs/internal_reconstruction_cartesian_zy.png"></img>
+         <img width="650" height="500" src="./imgs/internal_reconstruction_cartesian_zy.png"></img>
 </p>
 
 The next plot shows all hits.
-<p >
-         <img width="600" height="450" src="./imgs/all_hits_per_layer.png"></img>
+<p align="center">
+         <img width="650" height="500" src="./imgs/internal_reconstruction_3d.png"></img>
 </p>
 
 The next plot is the prediction of all hits.
 <p align="center">
-         <img width="600" height="450" src="./imgs/all_tracks_pred.png"></img>
+         <img width="650" height="500" src="./imgs/all_tracks_pred.png"></img>
 </p>
 
 
