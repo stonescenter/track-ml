@@ -1,0 +1,52 @@
+{
+    "paths": {
+        "bin_dir": "compiled",
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {
+        "filename": "./dataset/eta_n0.5-0.5_phi_n0.5-0.5_internal_short1.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "type_norm": "zscore",
+        "cylindrical": true,
+        "points_3d": false,
+        "num_hits": 10,
+        "features": 2
+    },
+    "training": {
+        "epochs": 30,
+        "batch_size": 18,
+        "validation": 0.3,
+        "save_model": true,
+        "load_model": false,
+        "use_gpu": true,
+        "show_metrics": false,
+        "shuffle": false,
+        "earlystopping": true
+    },
+    "testing": {
+        "type_optimization" : "nearest",
+        "metric": "cosine",        
+        "normalise": false,
+        "tolerance": 0.02
+    },      
+    "model": {
+        "name": "gaussian-lstm",
+        "overwrite": true,
+        "isparallel": false,        
+        "loss": "mse",
+        "metrics": ["acc"],
+        "optimizer": "adam",
+        "learningrate": 0.01,        
+        "layers": [
+            {
+                "type": "input",
+                "neurons": 500,                
+                "input_features": 2,
+                "input_timesteps": 4,
+                "activation": "tanh"                
+            }                  
+        ]
+    }
+}

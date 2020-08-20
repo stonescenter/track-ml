@@ -1,0 +1,65 @@
+{
+    "paths": {
+        "bin_dir": "compiled",
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {
+        "filename": "./dataset/eta_n0.5-0.5_phi_n0.5-0.5_internal_short1.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "type_norm": "maxmin",
+        "cylindrical": true,
+        "points_3d": false,
+        "num_hits": 10,
+        "features": 2
+    },
+    "training": {
+        "epochs": 50,
+        "batch_size": 30,
+        "validation": 0.2,
+        "save_model": true,
+        "load_model": false,
+        "use_gpu": true,
+        "show_metrics": false,
+        "shuffle": true,
+        "earlystopping": true
+    },
+    "testing": {
+        "type_optimization" : "nearest",
+        "metric": "cosine",        
+        "normalise": false,
+        "tolerance": 0.02
+    },      
+    "model": {
+        "name": "gaussian-mlp",
+        "overwrite": true,
+        "isparallel": false,        
+        "loss": "mse",
+        "metrics": ["acc"],
+        "optimizer": "adam",
+        "learningrate": 0.001,        
+        "layers": [
+            {
+                "type": "input",
+                "neurons": 800,                
+                "input_features": 2,
+                "input_timesteps": 4,
+                "activation": "tanh"                
+            },
+            {
+                "type": "dense",
+                "neurons": 100,
+                "activation": "tanh"
+            },
+            {
+                "type": "dense",
+                "neurons": 2,
+                "activation": "linear"
+            },
+            {
+                "type": "gaussian_layer"
+            }                     
+        ]
+    }
+}
