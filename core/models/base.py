@@ -13,13 +13,13 @@ from scipy.spatial import distance
 
 import tensorflow as tf
 import keras.backend as K
-from keras.backend.tensorflow_backend import set_session
+#from keras.backend.tensorflow_backend import set_session
 from keras.models import Sequential, load_model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.utils import plot_model   
 
 from core.utils.utils import *
-
+from core.models.gaussian_loss import gaussian_loss, gaussian_nll
 
 class BagOfHits(Enum):
     All=1,
@@ -63,18 +63,38 @@ class BaseModel():
         self.save_fname = os.path.join(configs['paths']['save_dir'], 'architecture-%s.png' % self.name)
 
         self.save = configs['training']['save_model']
-        
+
         if configs['training']['use_gpu'] == True:
-            #config = tf.ConfigProto( device_count = {'GPU': 0 , 'CPU': 0} ) 
-            config = tf.ConfigProto()
-            config.gpu_options.allow_growth = True
-            sess = tf.Session(config=config) 
-            set_session(sess)
-            tf.device('/gpu:0')
+            #if tf.test.is_gpu_available():
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+
+            if gpus:
+                try:
+                    # Currently, memory growth needs to be the same across GPUs
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                        print('[Model] Set memory growth for %s to True', gpu)
+
+                    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                    print("[Model] ", len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                except RuntimeError as e:
+                    # Memory growth must be set before GPUs have been initialized
+                    print(e)
         else:
-            config=tf.ConfigProto(log_device_placement=True)
-            sess = tf.Session(config=config)
-            set_session(sess)
+            print('No GPU configured.')
+            pass
+
+        # if configs['training']['use_gpu'] == True:
+        #     #config = tf.ConfigProto( device_count = {'GPU': 0 , 'CPU': 0} ) 
+        #     config = tf.ConfigProto()
+        #     config.gpu_options.allow_growth = True
+        #     sess = tf.Session(config=config) 
+        #     set_session(sess)
+        #     tf.device('/gpu:0')
+        # else:
+        #     config=tf.ConfigProto(log_device_placement=True)
+        #     sess = tf.Session(config=config)
+        #     set_session(sess)
         
         #set_random_seed(42)
         tf.compat.v1.set_random_seed(0)
@@ -82,7 +102,7 @@ class BaseModel():
     def load_model(self):
         if self.exist_model(self.save_fnameh5):
             print('[Model] Loading model from file %s' % self.save_fnameh5)
-            self.model = load_model(self.save_fnameh5)
+            self.model = load_model(self.save_fnameh5, custom_objects={'gaussian_loss': gaussian_loss, 'gaussian_nll': gaussian_nll})
             return True
         else:
             print('[Model] Can not load the model from file %s' % self.save_fnameh5)
@@ -102,33 +122,37 @@ class BaseModel():
         self.model.save(filepath)
         print('[Model] Model for inference saved at %s' % filepath)
 
-    def train(self, x, y, epochs, batch_size, validation, shuffle=False):
+    def train(self, x, y, epochs, batch_size, validation, shuffle=False, verbose=False, callbacks=None):
         timer = Timer()
         timer.start()
         print('[Model] Training Started')
         print('[Model] %s epochs, %s batch size' % (epochs, batch_size))
         #print('[Model] Shape of data train: ', x.shape) 
         #save_fname = os.path.join(save_dir, '%s-e%s.h5' % (dt.datetime.now().strftime('%d%m%Y-%H%M%S'), str(epochs)))
-        callbacks = None
-
-        if self.earlystopping:           
-            callbacks = [
-                EarlyStopping(monitor='loss', mode='min', verbose=1),
-                ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
-            ]
+        
+        if callbacks is None:
+            print('DEBUG')
+            if self.earlystopping:
+                callbacks = [
+                    EarlyStopping(monitor='loss', mode='min', verbose=1),
+                    ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
+                ]
+            else:
+                callbacks = [
+                    ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
+                ]
         else:
-            callbacks = [
-                ModelCheckpoint(filepath=self.save_fnameh5, monitor='val_loss', mode='min', save_best_only=True)
-            ]
+            pass
 
         history = self.model.fit(
             x,
             y,
+            verbose=verbose,
             validation_split=validation,
             epochs=epochs,
             batch_size=batch_size,
-            callbacks=callbacks,
-            shuffle=shuffle
+            shuffle=shuffle,
+            callbacks=callbacks
         )
 
         if self.save == True:
@@ -281,8 +305,8 @@ class BaseModel():
 
         return pred_sequences
 
-    def predict_full_sequences_nearest(self, x_test, y_test, data, bag_of_hits, y_test_aux=None, num_hits=6, num_features=3,
-                                        normalise=False, cylindrical=False, verbose=False, tol=0.01):
+    def predict_full_sequences_nearest(self, x_test, y_test, data, bag_of_hits, y_test_aux=None, num_hits=6, num_features=3, 
+                                        num_obs=4, normalise=False, cylindrical=False, verbose=False, tol=0.01):
         
         '''
             This function shift the window by 1 new prediction each time, re-run predictions on new window
@@ -338,7 +362,7 @@ class BaseModel():
                 # bag_of_hit by layer
                 end = begin+num_features
                 curr_layer = np.array(y_test.iloc[0:,begin:end]).reshape(total, num_features)
-                curr_layer_polar = np.array(y_test_cpy.iloc[0:,begin:end]).reshape(total, n_features)
+                curr_layer_polar = np.array(y_test_cpy.iloc[0:,begin:end]).reshape(total, num_features)
                 curr_hit = curr_track[i]
                 begin = end
                 
@@ -347,10 +371,10 @@ class BaseModel():
                     print('input:\n', curr_frame)
                 
                 if normalise:
-                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1,12)))
+                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1, num_obs*num_features)))
                     curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values.flatten())
-                    curr_frame_orig = np.reshape(curr_frame_orig, (4,3))
-                    curr_frame = np.reshape(curr_frame, (4,3))
+                    curr_frame_orig = np.reshape(curr_frame_orig, (num_obs,num_features))
+                    curr_frame = np.reshape(curr_frame, (num_obs, num_features))
                 else:
                     curr_frame = curr_frame
                     curr_frame_orig = curr_frame
@@ -365,13 +389,13 @@ class BaseModel():
                 y_pred = self.model.predict(curr_frame[np.newaxis,:,:], batch_size=self.batch_size)
 
                 
-                y_pred = np.reshape(y_pred, (1, 3))
+                y_pred = np.reshape(y_pred, (1, num_features))
                 if normalise:
                     y_pred_orig = data.inverse_transform_y(y_pred)
                 else:
                     y_pred_orig = y_pred
 
-                y_pred_orig = np.reshape(y_pred_orig, (1, 3))
+                y_pred_orig = np.reshape(y_pred_orig, (1, num_features))
 
                 if bag_of_hits == BagOfHits.All:
                     hits = bag_of_hits_all
