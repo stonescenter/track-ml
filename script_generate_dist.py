@@ -12,11 +12,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     # Dataset setting
-    parser.add_argument('--dataset', type=str, help='Path to dataset')
-    parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
-    parser.add_argument('--split', type=float, help='this param load model')
-    parser.add_argument('--normalise', type=str, help='this param load model')
-    parser.add_argument('--output', type=str, default="results", help='this param load model')
+    parser.add_argument('--dataset', type=str, help='path to dataset')
+    parser.add_argument('--cylindrical', type=str, help='type of coordenates system')
+    parser.add_argument('--split', type=float, help='split rate')
+    parser.add_argument('--normalise', type=str, help='normalise the data')
+    parser.add_argument('--num_obs', type=int, default=4, help='this param is the number of hits of input')   
+    parser.add_argument('--num_features', type=int, default=3, help='this param is the of features of a hit')
+    parser.add_argument('--output', type=str, default="results", help='outpu of results')
     
     # parse the arguments
     args = parser.parse_args()
@@ -49,8 +51,8 @@ def main():
 
 	data = Dataset(data_file, float(args.split), cylindrical, 10, KindNormalization.Zscore)
 
-	X_train, y_train = data.get_training_data(n_hit_in=4, n_hit_out=1,
-	                             n_features=3, normalise=normalise)
+	X_train, y_train = data.get_training_data(n_hit_in=args.num_obs, n_hit_out=1,
+	                             n_features=args.num_features, normalise=normalise)
 
 	print('path:', data_file)
 	print('encry:', encryp_ds_name)
