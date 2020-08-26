@@ -10,6 +10,7 @@ import pandas as pd
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from enum import Enum
+from pickle import dump, load
 
 class FeatureType(Enum):
 	Divided = 1, # indica as caracteristicas estao divididas em posiciones e outras informacoes
@@ -23,20 +24,20 @@ class KindNormalization(Enum):
 	Nothing = 4
     
 class Dataset():
-	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization):
+	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization, points_3d=True):
 
 		#np.set_printoptions(suppress=True)
 
-		# com index_col ja não inclui a coluna index 
+		# com index_col ja nao inclui a coluna index
 		dataframe = pd.read_csv(input_path, header=0, engine='python')
 		print("[Data] Data loaded from ", input_path)
 		self.kind = kind_normalization
 
 		if self.kind == KindNormalization.Scaling:
-			self.x_scaler = MinMaxScaler(feature_range=(0, 1))
-			self.y_scaler = MinMaxScaler(feature_range=(0, 1)) 			
+			self.x_scaler = MinMaxScaler(feature_range=(-1, 1))
+			self.y_scaler = MinMaxScaler(feature_range=(-1, 1))
 
-		elif kind_normalization == KindNormalization.Zscore:
+		elif self.kind == KindNormalization.Zscore:
 			self.x_scaler = StandardScaler() # mean and standart desviation
 			self.y_scaler = StandardScaler() # mean and standart desviation
 			self.y_scaler_test = StandardScaler()
@@ -67,11 +68,19 @@ class Dataset():
 		end_val = 11
 
 		if self.cylindrical == False:
-			begin_coord = 1
+			# if we choose points_3d = true then the filter is 3d data points : rho, eta, phi 
+			# else then 2d data eta and phi
+			if points_3d:
+				begin_coord = 1
+			else:
+				begin_coord = 2
 			end_coord = 4
 		# cilyndrical coordinates    
 		elif self.cylindrical == True:
-			begin_coord = 4
+			if points_3d:
+				begin_coord = 4
+			else:
+				begin_coord = 5	
 			end_coord = 7
 
 		begin_cols = [begin_coord+(self.interval*hit) for hit in range(0, hits)]
@@ -92,7 +101,7 @@ class Dataset():
 			print('\t We have removed %s unuseful tracks. We believe you need to know. ' % res)
 			self.data = self.data.iloc[:-res,:]
 
-		i_split = round(len(self.data) * train_size)
+		i_split = int(len(self.data) * train_size)
 
 		self.data_train = self.data.iloc[0:i_split,0:]
 		self.data_test = self.data.iloc[i_split:,0:]
@@ -101,6 +110,8 @@ class Dataset():
 		print("[Data] Data train shape ", self.data_train.shape)		
 		print("[Data] Data test shape ", self.data_test.shape)
 		print("[Data] Data coordinates ", self.coord_name)
+		print("[Data] Data normalization type ", self.kind)
+
 
 	def prepare_training_data(self, feature_type, normalise=True, cylindrical=False):
 
@@ -479,34 +490,55 @@ class Dataset():
 	def scale_data(self, array, mean,stds):
 		return (array-mean)/stds
 
-	def save_scale_param(self, path):   
+	def save_scale_param(self, path):
 
-	    np.save(os.path.join(path, 'x_scaler_scale.npy'), np.asarray(self.x_scaler.scale_))
-	    np.save(os.path.join(path, 'x_scaler_mean.npy'), np.asarray(self.x_scaler.mean_))
-	    np.save(os.path.join(path, 'x_scaler_var.npy'), np.asarray(self.x_scaler.var_))
-	    
-	    np.save(os.path.join(path, 'y_scaler_scale.npy'), np.asarray(self.y_scaler.scale_))    
-	    np.save(os.path.join(path, 'y_scaler_mean.npy'), np.asarray(self.y_scaler.mean_))
-	    np.save(os.path.join(path, 'y_scaler_var.npy'), np.asarray(self.y_scaler.var_))
+		'''
+			Save the scaler
+		'''
+		if self.kind == KindNormalization.Zscore:
+			np.save(os.path.join(path, 'x_scaler_scale.npy'), np.asarray(self.x_scaler.scale_))
+			np.save(os.path.join(path, 'x_scaler_mean.npy'), np.asarray(self.x_scaler.mean_))
+			np.save(os.path.join(path, 'x_scaler_var.npy'), np.asarray(self.x_scaler.var_))
+
+			np.save(os.path.join(path, 'y_scaler_scale.npy'), np.asarray(self.y_scaler.scale_))    
+			np.save(os.path.join(path, 'y_scaler_mean.npy'), np.asarray(self.y_scaler.mean_))
+			np.save(os.path.join(path, 'y_scaler_var.npy'), np.asarray(self.y_scaler.var_))
+		elif self.kind == KindNormalization.Scaling:
+			dump(self.x_scaler, open(os.path.join(path, 'x_scaler_minmax.pkl'), 'wb'))
+			dump(self.y_scaler, open(os.path.join(path, 'y_scaler_minmax.pkl'), 'wb'))
 
 	def load_scale_param(self, path):
-	    x_scaler = StandardScaler()
-	    y_scaler = StandardScaler()
 
-	    x_scale = np.load(path + '/x_scaler_scale.npy')    
-	    x_mean = np.load(path + '/x_scaler_mean.npy')
-	    x_var = np.load(path + '/x_scaler_var.npy')
-	    
-	    y_scale = np.load(path + '/y_scaler_scale.npy')
-	    y_mean = np.load(path + '/y_scaler_mean.npy')
-	    y_var = np.load(path + '/y_scaler_var.npy')
-	    
-	    x_scaler.scale_ = x_scale
-	    x_scaler.mean_ = x_mean
-	    x_scaler.var_ = x_var
-	    
-	    y_scaler.scale_ = y_scale
-	    y_scaler.mean_ = y_mean
-	    y_scaler.var_ = y_var
-	    
-	    return x_scaler, y_scaler
+		
+		x_scaler, y_scaler = None, None
+
+		if self.kind == KindNormalization.Zscore:		
+			x_scaler = StandardScaler()
+			y_scaler = StandardScaler()
+
+			x_scale = np.load(path + '/x_scaler_scale.npy')    
+			x_mean = np.load(path + '/x_scaler_mean.npy')
+			x_var = np.load(path + '/x_scaler_var.npy')
+
+			y_scale = np.load(path + '/y_scaler_scale.npy')
+			y_mean = np.load(path + '/y_scaler_mean.npy')
+			y_var = np.load(path + '/y_scaler_var.npy')
+
+			x_scaler.scale_ = x_scale
+			x_scaler.mean_ = x_mean
+			x_scaler.var_ = x_var
+
+			y_scaler.scale_ = y_scale
+			y_scaler.mean_ = y_mean
+			y_scaler.var_ = y_var
+
+		elif self.kind == KindNormalization.Scaling:	
+			x_scaler = MinMaxScaler()
+			y_scaler = MinMaxScaler()
+			x_scaler = load(open(path + '/x_scaler_minmax.pkl', 'rb'))
+			y_scaler = load(open(path + '/y_scaler_minmax.pkl', 'rb'))
+
+		else:
+			print('[Error] there is a problem loading distributions %s.' % self.kind)
+
+		return x_scaler, y_scaler

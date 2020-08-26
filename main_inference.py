@@ -9,9 +9,9 @@ import json
 
 import datetime as dt
 from core.data.data_loader import *
-from core.models.lstm import ModelLSTM, ModelLSTMParallel, ModelLSTMCuDnnParalel
+from core.models.lstm import ModelLSTM, ModelLSTMParallel, GaussianLSTM
 from core.models.cnn import ModelCNN, ModelCNNParallel
-from core.models.mlp import ModelMLP
+from core.models.mlp import ModelMLP, GaussianMLP
 from core.models.rnn import ModelRNN
 from core.models.base import BagOfHits
 
@@ -45,16 +45,20 @@ def manage_models(config):
 
     if type_model == 'lstm': #simple LSTM
         model = ModelLSTM(config)
+    elif type_model == 'gaussian-lstm':
+        model = GaussianLSTM(config)        
     elif type_model == 'lstm-parallel':
         model = ModelLSTMParallel(config)
     elif type_model == 'cnn':
         model = ModelCNN(config)
     elif type_model == 'cnn-parallel':
-        model = ModelCNNParallel(config)        
+        model = ModelCNNParallel(config)
     elif type_model == 'mlp':
         model = ModelMLP(config)
-    elif type_model == 'rnn':
-        model = ModelRNN(config)        
+    elif type_model == 'gaussian-mlp':
+        model = GaussianMLP(config)
+    elif type_model == 'simple-rnn':
+        model = ModelRNN(config)
 
     return model
 
@@ -81,6 +85,9 @@ def main():
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
+    type_norm = configs['data']['type_norm']
+    points_3d = configs['data']['points_3d'] # what kind of points: (rho, eta, phi) or (eta, phi)
+
     type_opt = configs['testing']['type_optimization']
     tolerance = configs['testing']['tolerance']
     metric = configs['testing']['metric']
@@ -138,11 +145,18 @@ def main():
         print('[Error] this scripts don´t allow train models. Change the load_model parameter to true.')
         return
 
+    if type_norm == "zscore":
+        kind_norm = KindNormalization.Zscore
+    elif type_norm == "maxmin":
+        kind_norm = KindNormalization.Scaling
+    else:
+        print('error type normalization')
     # prepare data set
-    data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
+    data = Dataset(data_file, split, cylindrical, num_hits, kind_norm, points_3d=points_3d)
 
     # we need to load a previous distribution of training data. If we have testing stage divided
     # pay attention x_scaler and y_scaler have the same distribution normalized of training stage
+    print('[Data] Loading distribution from ', output_encry)
     x_scaler, y_scaler = data.load_scale_param(output_encry)
 
     X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
@@ -153,11 +167,13 @@ def main():
     #X_test = X_test.iloc[0:1000,]
     #y_test = y_test[0:1000]
 
-    print('[Data] shape data X_test.shape:', X_test.shape)
-    print('[Data] shape data y_test.shape:', y_test.shape)
+    print('[Data] Data shape X_test.shape:', X_test.shape)
+    print('[Data] Data shape y_test.shape:', y_test.shape)
 
 
-    if type_model == 'lstm' or type_model == 'cnn':
+    if type_model == 'mlp' or type_model == 'gaussian-mlp':
+        X_test_, y_test_ = X_test, y_test
+    if type_model == 'lstm' or type_model == 'cnn' or type_model == 'gaussian-lstm':
         if not is_parallel:
             # convertimos a matriz do test em um vetor
             X_test_ = data.reshape3d(X_test, time_steps, n_features)
@@ -180,14 +196,14 @@ def main():
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
         elif type_opt == "nearest":
             # get data in coord cartesian
-            data_tmp = Dataset(data_file, split, False, num_hits, KindNormalization.Zscore)
+            data_tmp = Dataset(data_file, split, False, num_hits, kind_norm, points_3d=points_3d)
 
             # for cylindrical True always we need the data as original values with normalise False
             X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
                                              n_features=n_features, normalise=False)
             if not is_parallel:       
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
-                                                                     normalise=normalise, cylindrical=True,
+                                                                     normalise=normalise, cylindrical=True, num_features=n_features, num_obs=time_steps,
                                                                      verbose=False, tol=tolerance)
             else:
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest_parallel(X_test_, y_test, data, BagOfHits.Layer, y_test_aux,
@@ -199,7 +215,7 @@ def main():
         elif type_opt == "nearest":
             if not is_parallel:          
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, seq_len, 
-                                                                 normalise=normalise, cylindrical=False,
+                                                                 normalise=normalise, cylindrical=False, num_features=n_features,
                                                                  verbose=False, tol=tolerance)
             else:
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest_parallel(X_test_, y_test, data, BagOfHits.Layer, None,

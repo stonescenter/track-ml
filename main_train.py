@@ -11,9 +11,9 @@ from sklearn.model_selection import train_test_split
 import datetime as dt
 
 from core.data.data_loader import *
-from core.models.lstm import ModelLSTM, ModelLSTMParallel, ModelLSTMCuDnnParalel
+from core.models.lstm import ModelLSTM, ModelLSTMParallel, GaussianLSTM
 from core.models.cnn import ModelCNN, ModelCNNParallel
-from core.models.mlp import ModelMLP
+from core.models.mlp import ModelMLP, GaussianMLP
 from core.models.rnn import ModelRNN
 
 from core.utils.metrics import *
@@ -44,16 +44,20 @@ def manage_models(config):
 
     if type_model == 'lstm': #simple LSTM
         model = ModelLSTM(config)
+    elif type_model == 'gaussian-lstm':
+        model = GaussianLSTM(config)        
     elif type_model == 'lstm-parallel':
         model = ModelLSTMParallel(config)
     elif type_model == 'cnn':
         model = ModelCNN(config)
     elif type_model == 'cnn-parallel':
-        model = ModelCNNParallel(config)        
+        model = ModelCNNParallel(config)
     elif type_model == 'mlp':
         model = ModelMLP(config)
+    elif type_model == 'gaussian-mlp':
+        model = GaussianMLP(config)
     elif type_model == 'simple-rnn':
-        model = ModelRNN(config)        
+        model = ModelRNN(config)
 
     return model
 
@@ -76,6 +80,8 @@ def main():
     cylindrical = configs['data']['cylindrical']  # set to polar or cartesian coordenates
     normalise = configs['data']['normalise'] 
     num_hits = configs['data']['num_hits']
+    type_norm = configs['data']['type_norm']
+    points_3d = configs['data']['points_3d'] # what kind of points: (rho, eta, phi) or (eta, phi)
 
     type_model = configs['model']['name']
     optim = configs['model']['optimizer']
@@ -120,8 +126,12 @@ def main():
     if os.path.isdir(output_logs) == False:
         os.mkdir(output_logs)        
     
+    if type_norm == "zscore":
+        kind_norm = KindNormalization.Zscore
+    elif type_norm == "maxmin":
+        kind_norm = KindNormalization.Scaling
     # prepare data set
-    data = Dataset(data_file, split, cylindrical, num_hits, KindNormalization.Zscore)
+    data = Dataset(data_file, split, cylindrical, num_hits, kind_norm, points_3d=points_3d)
 
     X_train, y_train = data.get_training_data(n_hit_in=time_steps, n_hit_out=1,
                                  n_features=n_features, normalise=normalise)
@@ -131,7 +141,9 @@ def main():
     if normalise:
         data.save_scale_param(output_encry)
 
-    if type_model == 'lstm' or type_model == 'cnn':
+    if type_model == 'mlp' or type_model == 'gaussian-mlp':
+        pass
+    if type_model == 'lstm' or type_model == 'cnn' or type_model == 'gaussian-lstm':
         if not is_parallel:
             X_train = data.reshape3d(X_train, time_steps, t_features)
 
@@ -172,6 +184,7 @@ def main():
         coord = 'xyz'
 
     ident_name = model.name + "_" + coord 
+    
     timer = Timer()
     
     if not loadModel:
@@ -186,7 +199,6 @@ def main():
         save_fname = os.path.join(output_encry, 'architecture_%s.png' % ident_name)
         model.save_architecture(save_fname) 
 
-
         timer.start()        
         # in-memory training
         history = model.train(
@@ -195,12 +207,13 @@ def main():
             validation=validation_split,
             epochs=epochs,
             batch_size=batch,
+            verbose=True,
             shuffle=shuffle_train
         )
         #if show_metrics:
-        report = evaluate_training(history, output_encry, ident_name)
-
+        #report = evaluate_training(history, output_encry, ident_name)
         timer.stop()
+
     elif loadModel:       
         if not model.load_model():
             print ('[Error] please change the config file : load_model')
@@ -211,7 +224,7 @@ def main():
     f = open(os.path.join(output_encry, 'results-train.txt'), 'a')
     sys.stdout = f        
 
-    now = dt.datetime.now()
+
     print("[Output] Train results ")
     print("---Parameters--- ")
     print("\t Model Name        : ", model.name)
@@ -219,7 +232,7 @@ def main():
     print("\t Total tracks      : ", len(X_train))
     print("\t Path saved        : ", model.save_fnameh5) 
     print("\t Coordenate type   : ", coord) 
-    print("\t Compiled date     : %s taken %s" % (timer.start_dt.strftime("%d/%m/%Y %H:%M:%S"), timer.taken))    
+    #print("\t Compiled date     : %s taken %s" % (timer.start_dt.strftime("%d/%m/%Y %H:%M:%S"), timer.taken()))    
     print("\t Model scaled      : ", model.normalise)
     print("\t Model Optimizer   : ", optim)
     print("\t Model batch_size  : ", batch)

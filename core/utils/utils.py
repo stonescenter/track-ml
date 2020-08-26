@@ -37,9 +37,11 @@ class Timer():
         self.start_dt = dt.datetime.now()
  
     def stop(self):
-        end_dt = dt.datetime.now()
-        print('Time taken: %s' % (end_dt - self.start_dt))
+        self.end_dt = dt.datetime.now()
+        print('Time taken: %s' % (self.end_dt - self.start_dt))
 
+    def taken(self):
+        return self.end_dt - self.start_dt
 
 ##########################################
 ####                                  ####                      
