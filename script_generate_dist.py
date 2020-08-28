@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument('--cylindrical', type=str, help='type of coordenates system')
     parser.add_argument('--split', type=float, help='split rate')
     parser.add_argument('--normalise', type=str, help='normalise the data')
+    parser.add_argument('--type_norm', type=str, default='zscore', help='type of normalization data')
     parser.add_argument('--num_obs', type=int, default=4, help='this param is the number of hits of input')   
     parser.add_argument('--num_features', type=int, default=3, help='this param is the of features of a hit')
     parser.add_argument('--output', type=str, default="results", help='outpu of results')
@@ -49,7 +50,12 @@ def main():
 	cylindrical = True if args.cylindrical == "True" else False
 	normalise = True if args.normalise == "True" else False
 
-	data = Dataset(data_file, float(args.split), cylindrical, 10, KindNormalization.Zscore)
+	if args.type_norm == "zscore":
+		kind_norm = KindNormalization.Zscore
+	elif args.type_norm == "maxmin":
+		kind_norm = KindNormalization.Scaling
+
+	data = Dataset(data_file, float(args.split), cylindrical, 10, kind_norm)
 
 	X_train, y_train = data.get_training_data(n_hit_in=args.num_obs, n_hit_out=1,
 	                             n_features=args.num_features, normalise=normalise)
