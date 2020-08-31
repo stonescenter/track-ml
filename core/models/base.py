@@ -234,7 +234,7 @@ class BaseModel():
             curr_frame = x_test[j]
             predicted = []
             for i in range(hits_len):            
-                pred = self.model.predict(curr_frame[np.newaxis,:,:])                         
+                pred = self.model.predict(curr_frame[np.newaxis,:,:])
                 predicted.append(pred)
                 curr_frame = curr_frame[1:]
                 # inserta um  valor np.insert(array, index, value, axes)
@@ -277,7 +277,7 @@ class BaseModel():
                     curr_frame = curr_frame
                     curr_frame_orig = curr_frame
                                 
-                pred = self.model.predict(curr_frame[np.newaxis,:,:])                         
+                pred = self.model.predict(curr_frame[np.newaxis,:,:])
                 
                 pred = np.reshape(pred, (1, 3))
                 if normalise:
@@ -322,6 +322,7 @@ class BaseModel():
         timer.start()
 
         print('[Model] Predicting Sequences with Nearest Started')
+        print('[DEBUG] num_obs %s , num_features %s' % (num_obs, num_features))
 
         total = len(x_test)
 
@@ -372,7 +373,7 @@ class BaseModel():
                 
                 if normalise:
                     curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1, num_obs*num_features)))
-                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values.flatten())
+                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values)
                     curr_frame_orig = np.reshape(curr_frame_orig, (num_obs,num_features))
                     curr_frame = np.reshape(curr_frame, (num_obs, num_features))
                 else:
@@ -401,7 +402,7 @@ class BaseModel():
                     hits = bag_of_hits_all
                 elif bag_of_hits == BagOfHits.Track:
                     hits = curr_track
-                elif bag_of_hits == BagOfHits.Layer:                    
+                elif bag_of_hits == BagOfHits.Layer:
                     hits = curr_layer
                 
                 if cylindrical:
@@ -515,6 +516,7 @@ class BaseModel():
         num_boh = 6
         
         for j in range(total):
+            # curr_frame is the current input of hits for model
             curr_frame = x_test[j]
             # bag_of_hit by track
             curr_track = np.array(y_test.iloc[j,0:]).reshape(num_hits, n_features)
@@ -540,8 +542,8 @@ class BaseModel():
                     print('input:\n', curr_frame)
                     
                 if normalise:
-                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1,12)))
-                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values.flatten())
+                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1,t_steps*n_features)))
+                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values)
                     curr_frame_orig = np.reshape(curr_frame_orig, (t_steps, n_features))
                     curr_frame = np.reshape(curr_frame, (t_steps, n_features))
                 else:
@@ -632,6 +634,7 @@ class BaseModel():
         timer.stop()
 
         return pred_sequences, count_correct_nearest, count_correct
+
 
     def nearest_hit(self, hit, hits,
                              silent = True,
