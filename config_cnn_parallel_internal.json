@@ -1,0 +1,70 @@
+{
+    "paths": {
+        "bin_dir": "/data/track-ml/eramia/compiled/",
+        "save_dir": "results",
+        "log_dir": "logs"
+    },
+    "data": {
+        "filename": "./dataset/eta_n0.5-0.5_phi_n0.5-0.5_internal_short1.csv",
+        "train_split": 0.80,
+        "normalise": true,
+        "type_norm": "zscore",
+        "cylindrical": false,
+        "points_3d": true,
+        "num_hits": 10,
+        "features": 3
+    },
+    "training": {
+        "epochs": 15,
+        "batch_size": 18,
+        "validation": 0.3,
+        "save_model": true,
+        "load_model": false,
+        "use_gpu": true,
+        "show_metrics": false,
+        "shuffle": false,
+        "earlystopping": false
+    },
+    "testing": {
+        "type_optimization" : "nearest",
+        "metric": "cosine",   
+        "normalise": false,
+        "tolerance": 0.01
+    },
+    "model": {
+        "name": "cnn-parallel",
+        "overwrite": true,
+        "loss": "mse",
+        "metrics": ["acc"],
+        "optimizer": "adam",
+        "learningrate": 0.001,        
+        "isparallel": true,        
+        "layers": [
+            {
+                "type": "cnn",
+                "filters": 64,
+                "kernel_size": 2,
+                "activation": "relu",
+                "input_timesteps": 4,
+                "input_features": 1
+            },         
+            {
+                "type": "maxpooling",
+                "pool_size": 2
+            },
+            {
+                "type": "flatten"
+            },              
+            {
+                "type": "dense",
+                "neurons": 12,
+                "activation": "relu"
+            },              
+            {
+                "type": "dense",
+                "neurons": 3,
+                "activation": "linear"
+            }
+        ]
+    }
+}
