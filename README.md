@@ -42,23 +42,37 @@ A short datasets are in `dataset`  directory.
 
 # Running
 ## Training
-There are some predefined scripts to train diferents models (MLP, CNN, LSTM, CNN-parallel and others). If you need to change the parameters then change the config_lstm.json file. We use an internal barrel as dataset, this dataset is previously transformed and linked in json file:
+There are some predefined config files to train diferents models (MLP, CNN, LSTM, CNN-parallel and others). If you need to change the parameters then change the config_*.json file. We used internal barrel as dataset, this dataset is previously transformed and linked in json file:
 ```sh
-$ python main_train.py --config config_parallel_lstm.json
+$ python main_train.py --config config_lstm_parallel_internal.json
 ```
 There are other configurations for example a CNN model:
 
 ```sh
-$ python main_train.py --config config_parallel_cnn.json
+$ python main_train.py --config config_cnn_parallel_internal.json
+```
+
+If you want to see the training process when ajust any parameters of .json file. Run the notebook:
+
+```sh
+$ main_train.ipynb
+```
+For many trainings and testings with scripts. You can run it, with the default configuration:
+
+```sh
+$ ./run_trains.sh
+$ ./run_tests.show
 ```
 
 ## Inference
 
 You can inference data test:
 ```sh
-$ python main_inference.py --config config_parallel_lstm.json
+$ python main_inference.py --config config_lstm_parallel_internal.json
 ```
 This will produce a `results/encrypt_name/results-test.txt` file. 
+
+## Auxiliary Scripts
 
 
 # Performance
