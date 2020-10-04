@@ -5,17 +5,19 @@
         "log_dir": "logs"
     },
     "data": {
-        "filename": "./dataset/phi025-025_eta025-025_train1_lasthit_20200219.csv",
+        "filename": "dataset/eta_n0.5-0.5_phi_n0.5-0.5_short.csv",
         "train_split": 0.80,
         "normalise": true,
-        "cylindrical": false,
+        "type_norm": "maxmin",
+        "cylindrical": true,
+        "points_3d": true,
         "num_hits": 10,
         "features": 3
     },
     "training": {
-        "epochs": 15,
+        "epochs": 18,
         "batch_size": 6,
-        "validation": 0.2,
+        "validation": 0.3,
         "save_model": true,
         "load_model": false,
         "use_gpu": true,
@@ -25,8 +27,9 @@
     },
     "testing": {
         "type_optimization" : "nearest",
+        "metric": "cosine",
         "normalise": false,
-        "tolerance": 0.02
+        "tolerance": 0.01
     },
     "model": {
         "name": "cnn-parallel",
@@ -53,7 +56,7 @@
             }, 
             {
                 "type": "dense",
-                "neurons": 64,
+                "neurons": 32,
                 "activation": "relu"
             },              
             {

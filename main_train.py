@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('--dataset', type=str, help='Path to dataset')
     parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
     parser.add_argument('--load', type=str, help='this param load model')
-        
+    parser.add_argument('--samples', type=int, help='select a short dataset of samples used for testing quickly')        
     # parse the arguments
     args = parser.parse_args()
 
@@ -88,13 +88,15 @@ def main():
     arch = configs['model']['layers']
     is_parallel = configs['model']['isparallel']
     over_write = configs['model']['overwrite']
-    
+    lr = configs['model']['learningrate']
+
     loadModel = configs['training']['load_model']
     validation_split = configs['training']['validation']
     epochs = configs['training']['epochs']
     batch = configs['training']['batch_size']
     shuffle_train = configs['training']['shuffle']
 
+    samples = None
     if args.dataset is not None:
         data_file = args.dataset
         configs['data']['filename'] = data_file     
@@ -104,6 +106,8 @@ def main():
     if args.load is not None:
         loadModel = True if args.load == "True" else False
         configs['training']['load_model'] = loadModel 
+    if args.samples is not None:
+        samples = args.samples
 
     #create a encryp name for dataset
     path_to, filename = os.path.split(data_file)
@@ -131,7 +135,7 @@ def main():
     elif type_norm == "maxmin":
         kind_norm = KindNormalization.Scaling
     # prepare data set
-    data = Dataset(data_file, split, cylindrical, num_hits, kind_norm, points_3d=points_3d)
+    data = Dataset(data_file, split, cylindrical, num_hits, kind_norm, points_3d=points_3d, samples=samples)
 
     X_train, y_train = data.get_training_data(n_hit_in=time_steps, n_hit_out=1,
                                  n_features=n_features, normalise=normalise)
@@ -211,7 +215,7 @@ def main():
             shuffle=shuffle_train
         )
         #if show_metrics:
-        #report = evaluate_training(history, output_encry, ident_name)
+        report = evaluate_training(history, output_encry, ident_name)
         timer.stop()
 
     elif loadModel:       
@@ -231,11 +235,14 @@ def main():
     print("\t Dataset           : ", model.orig_ds_name)
     print("\t Total tracks      : ", len(X_train))
     print("\t Path saved        : ", model.save_fnameh5) 
-    print("\t Coordenate type   : ", coord) 
-    #print("\t Compiled date     : %s taken %s" % (timer.start_dt.strftime("%d/%m/%Y %H:%M:%S"), timer.taken()))    
+    print("\t Coordenates       : ", coord)
+    print("\t Coordenate 3D     : ", points_3d) 
+    print("\t Compiled date     : %s taken %s" % (timer.start_dt.strftime("%d/%m/%Y %H:%M:%S"), timer.taken()))    
     print("\t Model scaled      : ", model.normalise)
+    print("\t Model type scaled : ", kind_norm)      
     print("\t Model Optimizer   : ", optim)
     print("\t Model batch_size  : ", batch)
+    print("\t Model learn rate  : ", lr)    
     print("\t Model epochs      : %s  stopped %s " % (epochs, model.stopped_epoch))
     print("\t Accuracy          : ", report)
     print("\t Architecture      : ", arch)

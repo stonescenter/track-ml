@@ -41,15 +41,15 @@ def evaluate_training(history, save_to, keyword):
     #    acc=history['val_acc'][-1], loss=history['val_loss'][-1]))
 
     report_string = 'accuracy: {acc}, loss: {loss}, val_acc: {val_acc}, val_loss: {val_loss}'.format(
-        acc=history['val_acc'][-1],
+        acc=history['accuracy'][-1],
         loss=history['val_loss'][-1],
-        val_acc=history['val_acc'][-1],
+        val_acc=history['val_accuracy'][-1],
         val_loss=history['val_loss'][-1])
     print(report_string)
 
     # summarize history for accuracy
-    plt.plot(history['acc'])
-    plt.plot(history['val_acc'])
+    plt.plot(history['accuracy'])
+    plt.plot(history['val_accuracy'])
     plt.title('model accuracy')
     plt.ylabel('accuracy')
     plt.xlabel('epoch')

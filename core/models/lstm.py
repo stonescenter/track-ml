@@ -170,20 +170,22 @@ class GaussianLSTM(BaseModel):
         inputs = Input(shape=(input_timesteps, input_features))        
         outputs = LSTM(neurons, return_sequences=False, activation='tanh')(inputs)
         #outputs = LSTM(neurons, return_sequences=False, activation='tanh')(outputs)
-        outputs = Dense(2, activation='linear')(outputs)
+        outputs = Dense(neurons/2, activation='linear')(outputs)
+        outputs = Dense(input_features*2, activation='linear')(outputs)
 
-        distributions = Lambda(gaussian_layer_2d)(outputs)
+        #distributions = Lambda(gaussian_layer_2d)(outputs)
 
         ####################
-        self.model = Model(inputs=inputs, outputs=distributions)
+        self.model = Model(inputs=inputs, outputs=outputs)
 
         if configs['model']['optimizer'] == 'adam':
             opt = Adam(lr=configs['model']['learningrate'])
         elif configs['model']['optimizer'] == 'rmsprop':
             opt = RMSprop(lr=configs['model']['learningrate']) 
 
-        print(self.model.summary())
-        self.model.compile(loss=gaussian_nll, optimizer=opt, metrics=['accuracy'])       
+
+        self.model.compile(loss=gaussian_nll, optimizer=opt, metrics=['accuracy'])
+        print(self.model.summary())               
         print('[Model] Model Compiled with structure:', self.model.inputs)
         self.save_architecture(self.save_fname)     
         timer.stop()

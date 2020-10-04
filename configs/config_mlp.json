@@ -21,10 +21,11 @@
         "use_gpu": true,
         "show_metrics": false,
         "shuffle": true,
-        "earlystopping": false
+        "earlystopping": true
     },
     "testing": {
         "type_optimization" : "nearest",
+        "metric": "cosine",
         "normalise": false,
         "tolerance": 0.02
     },      
@@ -34,23 +35,24 @@
         "isparallel": false,        
         "loss": "mse",
         "metrics": ["acc"],
-        "optimizer": "rmsprop",
+        "optimizer": "adam",
+        "learningrate": 0.001,        
         "layers": [
             {
                 "type": "mlp",
-                "neurons": 12,
+                "neurons": 90,
                 "input_features": 3,
                 "input_timesteps": 4,
-                "activation": "relu"
+                "activation": "tanh"
             },                  
             {
                 "type": "dense",
-                "neurons": 6,
-                "activation": "relu"
+                "neurons": 60,
+                "activation": "tanh"
             },
             {
                 "type": "dense",
-                "neurons": 3,
+                "neurons": 2,
                 "activation": "linear"
             }
         ]

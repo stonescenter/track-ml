@@ -20,6 +20,7 @@ from keras.utils import plot_model
 
 from core.utils.utils import *
 from core.models.gaussian_loss import gaussian_loss, gaussian_nll
+from scipy.stats import norm
 
 class BagOfHits(Enum):
     All=1,
@@ -58,7 +59,7 @@ class BaseModel():
             'model-%s-%s-coord-%s-normalise-%s-epochs-%s-batch-%s.h5' % (
                 self.name, self.encryp_ds_name, coord,
                 str(self.normalise).lower(), self.epochs, self.batch_size))
-        print(self.save_fnameh5)
+        #print(self.save_fnameh5)
 
         self.save_fname = os.path.join(configs['paths']['save_dir'], 'architecture-%s.png' % self.name)
 
@@ -635,6 +636,210 @@ class BaseModel():
 
         return pred_sequences, count_correct_nearest, count_correct
 
+    def predict_prob(self, x, bs):
+        """Make predictions given model and 2d data
+        """
+        
+        ypred = self.model.predict(x, verbose=0, batch_size=bs)
+        n_outs = int(ypred.shape[1] / 2)
+        mean = ypred[:, 0:n_outs]
+        sigma = np.exp(ypred[:, n_outs:])
+
+        return mean, sigma
+
+    def predict_prob_full_sequences_nearest(self, x_test, y_test, data, bag_of_hits, y_test_xyz=None, 
+                                       t_steps=4, t_features=1, n_features=3, num_hits=6, 
+                                       normalise=False, cylindrical=False, verbose=False, tol=0.01, 
+                                       remove_hit=False, points_3d=True, metrics = 'euclidean'):
+
+        '''
+            This func predict the mean and variance shift the window by 1 new prediction each time, 
+            re-run predictions on new window
+
+            cylindrical : it says the training model was fed with cylindrical data if it is true
+            x_test and y_test are original data coordinates and not normalised
+            normalise : say if the model was compiled with normalised data
+        '''
+
+        timer = Timer()
+        timer.start()
+
+        print('[Model] Predicting Sequences with Nearest Started')
+
+        total = len(y_test)
+
+        pred_tracks = []
+        pred_sequences_orig = []
+
+        # if cylindrical is true then we change to cartesian coordinates  
+        '''
+        if cylindrical: 
+            y_test = y_test_aux
+        else:
+            y_test = y_test
+        '''
+        # bag_of_hits  
+        #bag_of_hits_all = np.array(convert_matrix_to_vec(y_test, n_features))
+
+        layers, layers_xyz = [] , []
+        begin = 0
+        for i in range(num_hits):
+            end = begin+n_features
+            layer_orig = np.array(y_test.iloc[:,begin:end]).reshape(total, n_features)
+            layer_xyz = np.array(y_test_xyz.iloc[:,begin:end]).reshape(total, n_features)
+            begin = end
+            layers.append(layer_orig)
+            layers_xyz.append(layer_xyz)
+                          
+        corrects_by_layer = np.zeros((len(metrics), num_hits))
+        begin_idx, end_idx = 0, 0
+        num_boh = 6
+
+        for j in range(total):
+            # in original coordinates, if was trained with polar then it must be polar coordinate
+            curr_frame = x_test[j]
+            # bag_of_hit by track
+            curr_track = np.array(y_test.iloc[j,0:]).reshape(num_hits, n_features)
+
+            if verbose:
+                print('curr_track %s , %s:' % (j , curr_track))
+
+            predicted = []
+            predicted_orig = []
+            #begin = 0
+            for i in range(num_hits):
+
+                # this current hit is in original coordinates
+                curr_hit = curr_track[i]
+                
+                if verbose:
+                    # primeira esta em originais
+                    print('input:\n', curr_frame)
+
+                # if the model was normalized, we  need to transform
+                if normalise:
+                    curr_frame = data.x_scaler.transform(np.reshape(curr_frame,(1, t_steps*n_features)))
+                    curr_frame_orig = data.inverse_transform_x(pd.DataFrame(curr_frame).values)
+                    curr_frame_orig = np.reshape(curr_frame_orig, (t_steps, n_features))
+                    curr_frame = np.reshape(curr_frame, (t_steps, n_features))
+                else:
+                    curr_frame = curr_frame
+                    curr_frame_orig = curr_frame
+
+                if verbose:
+                    print('input:\n', curr_frame)
+                    #print('input orig:\n', curr_frame_orig)
+
+                #print('input inv :\n', curr_frame_inv.reshape(4,3))
+                #print('newaxis ', curr_frame[np.newaxis,:,:])
+                # input must be scaled curr_frame
+                # the input and output must be in original coordinates that was compiled
+                mean, sigma = self.predict_prob(curr_frame[np.newaxis,:,:], bs=1)
+
+                if points_3d:
+                    rho_mean, rho_sigma = mean[:,0],  sigma[:,0]
+                    eta_mean, eta_sigma = mean[:,1],  sigma[:,1]
+                    phi_mean, phi_sigma = mean[:,2],  sigma[:,2]
+                    
+                    rho_pred = norm.median(rho_mean, rho_sigma)
+                    eta_pred = norm.median(eta_mean, eta_sigma)
+                    phi_pred = norm.median(phi_mean, phi_sigma)
+
+                    y_pred = np.reshape([rho_pred, eta_pred, phi_pred], (1, n_features))
+
+                else:
+                    eta_mean, eta_sigma = mean[:,0],  sigma[:,0]
+                    phi_mean, phi_sigma = mean[:,1],  sigma[:,1]
+                    
+                    eta_pred = norm.median(eta_mean, eta_sigma)
+                    phi_pred = norm.median(phi_mean, phi_sigma)
+
+                    y_pred = np.reshape([eta_pred, phi_pred], (1, n_features))
+
+                if normalise:
+                    y_pred_orig = data.inverse_transform_y(y_pred)
+                else:
+                    y_pred_orig = y_pred
+
+
+                # convert cylindrical to xyz for calculate the distance in the euclidean space
+                '''
+                if cylindrical:
+                    rho, eta, phi = y_pred_orig[0][0], y_pred_orig[0][1], y_pred_orig[0][2]
+                    #print(rho,eta,phi)
+                    x, y, z = convert_rhoetaphi_to_xyz(rho, eta, phi)
+
+                    #print(x,y,z)
+                    y_pred_orig[0][0] = x
+                    y_pred_orig[0][1] = y
+                    y_pred_orig[0][2] = z
+
+                    #print(y_pred_orig)
+                '''
+
+                curr_layer = layers[i]
+
+                for m, metric in enumerate(metrics):
+                    # calculate the nearest hit with a polar distance function 
+                    if metric == 'polar':
+                        if points_3d:
+                            dist = distance.cdist(curr_layer, y_pred_orig, distance_cylindrical_3D)
+                        else:
+                            dist = distance.cdist(curr_layer, y_pred_orig, distance_cylindrical_2D)
+                    else: # other distances   
+                        dist = distance.cdist(curr_layer, y_pred_orig, metric)
+
+                    # get the hit with lowest distance in orignal coordinates
+                    idx = np.argmin(dist)
+                    most_nearest = curr_layer[idx]
+
+                    # if curr_hit is in cartesian coord, near_pred must be in cartesian coord too
+                    # very small numbers are differents or equals
+                    # we count how many times we get the correct hit by layer
+                    if np.isclose(curr_hit, most_nearest, atol=tol).all():
+                        corrects_by_layer[m][i]+=1
+
+                # removing the hit from layer, mayority of times is not good
+                if remove_hit:
+                    layers[i] = np.delete(layers[i], idx, 0)
+
+                if verbose:
+                    print('pred:', y_pred)
+                    print('inv pred:', y_pred_orig)
+                    print('current:', curr_hit)
+                    print('nearest:', most_nearest)
+
+                # i think it is not necessary
+                '''
+                if cylindrical:
+                    y, z = near_pred[0], near_pred[1]
+                    #print(x,y,z)
+                    _, eta, phi = convert_xyz_to_rhoetaphi(1, y, z)
+                    #print(rho,eta,phi)
+                    #near_pred[0] = rho
+                    near_pred[0] = eta
+                    near_pred[1] = phi
+                '''
+                # we change to the original input at the same postion
+                #if cylindrical:
+                #    near_pred = curr_layer_[idx]
+
+                #near adiciona em valores originaeis
+                predicted.append(most_nearest)
+
+                curr_frame = curr_frame_orig[1:]
+                curr_frame = np.insert(curr_frame, [3], predicted[-1], axis=0)
+
+
+            pred_tracks.append(predicted)
+
+            if verbose:
+                if j == 10: break
+
+        print('[Model] Prediction Finished.')
+        timer.stop()
+
+        return pred_tracks, corrects_by_layer
 
     def nearest_hit(self, hit, hits,
                              silent = True,

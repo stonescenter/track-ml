@@ -24,7 +24,7 @@ class KindNormalization(Enum):
 	Nothing = 4
     
 class Dataset():
-	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization, points_3d=True):
+	def __init__(self, input_path, train_size, cylindrical, hits, kind_normalization, points_3d=True, samples=None):
 
 		#np.set_printoptions(suppress=True)
 
@@ -34,8 +34,8 @@ class Dataset():
 		self.kind = kind_normalization
 
 		if self.kind == KindNormalization.Scaling:
-			self.x_scaler = MinMaxScaler(feature_range=(-1, 1))
-			self.y_scaler = MinMaxScaler(feature_range=(-1, 1))
+			self.x_scaler = MinMaxScaler(feature_range=(-np.pi, np.pi))
+			self.y_scaler = MinMaxScaler(feature_range=(-np.pi, np.pi))
 
 		elif self.kind == KindNormalization.Zscore:
 			self.x_scaler = StandardScaler() # mean and standart desviation
@@ -53,7 +53,12 @@ class Dataset():
 		self.interval = 11
 		self.decimals = 4
 
-		self.data = dataframe.iloc[:, self.start_hits:]
+		# select an specific samples of dataset
+		if samples is not None:
+			self.data = dataframe.iloc[:samples, self.start_hits:]
+		else:
+			self.data = dataframe.iloc[:, self.start_hits:]
+		
 		#self.self = 0
 
 		if cylindrical:
@@ -261,7 +266,7 @@ class Dataset():
 		sequences = self.data_test.values
 
 		rows = sequences.shape[0]
-
+		
 		for i in range(0, rows):
 			end_ix = n_hit_in*n_features
 			seq_x, seq_y = sequences[i, 0:end_ix], sequences[i, end_ix:]
@@ -282,7 +287,7 @@ class Dataset():
 			y_data = pd.DataFrame(Y)
 
 		elif normalise and (xscaler is not None or yscaler is not None):
-			print('not is none')
+
 			# we load a previous scaler mean and std
 			self.x_scaler = xscaler
 			self.y_scaler = yscaler
@@ -295,7 +300,7 @@ class Dataset():
 			y_data = pd.DataFrame(Y)
 
 		elif not normalise and (xscaler is not None or yscaler is not None):
-			print('normalise false and is none')
+
 			# we load a previous scaler mean and std
 			self.x_scaler = xscaler
 			self.y_scaler = yscaler

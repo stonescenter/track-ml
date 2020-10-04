@@ -23,15 +23,17 @@ import numpy as np
 def parse_args():
     """Parse arguments."""
     # Parameters settings
-    parser = argparse.ArgumentParser(description="LSTM implementation ")
+    parser = argparse.ArgumentParser(description="Script for Inference")
 
     # Dataset setting
     parser.add_argument('--config', type=str, default="default_config.json", help='Configuration file')
     parser.add_argument('--dataset', type=str, help='Path to dataset')
     parser.add_argument('--cylindrical', type=str, help='Type of Coordenates system')
-    parser.add_argument('--load', type=str, help='this param load model')
+    parser.add_argument('--load', type=str, help='load predifined model')
     parser.add_argument('--normalise', type=str, help='normalise input data')
     parser.add_argument('--typeopt', type=str, help='type of optimization of predicted value')
+    parser.add_argument('--samples', type=int, default=0, help='select a short dataset of samples used for testing quickly')
+    parser.add_argument('--remove', type=str, help='when apply nearest optimization, you could set if you want to remove hit found')
     
     # parse the arguments
     args = parser.parse_args()
@@ -90,7 +92,9 @@ def main():
 
     type_opt = configs['testing']['type_optimization']
     tolerance = configs['testing']['tolerance']
-    metric = configs['testing']['metric']
+    metrics = configs['testing']['metric']
+    remove_hit = configs['testing']['remove_hit']
+    show_metrics = configs['testing']['show_metrics']
 
     loadModel = configs['training']['load_model']
 
@@ -110,8 +114,13 @@ def main():
         configs['data']['normalise'] = normalise  
     if args.typeopt is not None:
         type_opt = args.typeopt
-        configs['testing']['type_optimization'] = type_opt  
-    
+        configs['testing']['type_optimization'] = type_opt
+    if args.samples is not None:
+        samples = args.samples
+    if args.remove is not None:
+        remove_hit = True if args.remove == "True" else False
+        configs['training']['load_model'] = remove_hit
+
     #create a encryp name for dataset
     path_to, filename = os.path.split(data_file)
 
@@ -151,21 +160,28 @@ def main():
         kind_norm = KindNormalization.Scaling
     else:
         print('error type normalization')
+
     # prepare data set
     data = Dataset(data_file, split, cylindrical, num_hits, kind_norm, points_3d=points_3d)
 
     # we need to load a previous distribution of training data. If we have testing stage divided
     # pay attention x_scaler and y_scaler have the same distribution normalized of training stage
-    print('[Data] Loading distribution from ', output_encry)
-    x_scaler, y_scaler = data.load_scale_param(output_encry)
+    x_scaler, y_scaler = None, None
 
+    if normalise:
+        print('[Data] Loading distribution from ', output_encry)        
+        x_scaler, y_scaler = data.load_scale_param(output_encry)
+
+    print("[Data] Get testing data ...")    
     X_test, y_test = data.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
                                        n_features=n_features, normalise=False,
                                        xscaler=x_scaler, yscaler=y_scaler)
 
-    # a short dataset
-    #X_test = X_test.iloc[0:1000,]
-    #y_test = y_test[0:1000]
+    # a short dataset for testing propose
+    
+    if samples > 0:
+        X_test = X_test.iloc[0:samples,]
+        y_test = y_test[0:samples]
 
     print('[Data] Data shape X_test.shape:', X_test.shape)
     print('[Data] Data shape y_test.shape:', y_test.shape)
@@ -192,15 +208,22 @@ def main():
     correct_nearest = [0]
     y_pred = None
     if cylindrical:
+        print('[Data] Loading auxilary dataset in Cartesian Coordenates ...')
+        # get data in cartesian coordinates (x, y, z)
+        data_tmp = Dataset(data_file, split, False, num_hits, kind_norm, points_3d=points_3d)
+
+        # for cylindrical True always we need the data as original values with normalise False
+        X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
+                                         n_features=n_features, normalise=False)            
+
+        if samples > 0:
+            X_test_aux, y_test_aux = X_test_aux.iloc[:samples,:], y_test_aux.iloc[:samples,:]
+
         if type_opt == "normal":
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
         elif type_opt == "nearest":
-            # get data in coord cartesian
-            data_tmp = Dataset(data_file, split, False, num_hits, kind_norm, points_3d=points_3d)
 
-            # for cylindrical True always we need the data as original values with normalise False
-            X_test_aux, y_test_aux = data_tmp.get_testing_data(n_hit_in=time_steps, n_hit_out=1,
-                                             n_features=n_features, normalise=False)
+
             if not is_parallel:       
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, seq_len, 
                                                                      normalise=normalise, cylindrical=True, num_features=n_features, num_obs=time_steps,
@@ -208,7 +231,17 @@ def main():
             else:
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest_parallel(X_test_, y_test, data, BagOfHits.Layer, y_test_aux,
                                                                 t_steps=time_steps, t_features=t_features, n_features=n_features, num_hits=seq_len,  
-                                                                normalise=normalise, cylindrical=True, verbose=False, tol=tolerance, metric=metric)
+                                                                normalise=normalise, cylindrical=True, verbose=False, tol=tolerance, metric=metrics)
+        elif type_opt == "gaussian":
+
+                # we had better result when pass cylindrical false
+                cylin = True
+                y_pred, correct_nearest = model.predict_prob_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, y_test_aux, 
+                                                                t_steps=time_steps, t_features=t_features, n_features=n_features, num_hits=seq_len,  
+                                                                normalise=normalise, cylindrical=cylin, verbose=False, tol=tolerance, remove_hit=remove_hit,
+                                                                points_3d=points_3d, metrics=metrics)
+        else:
+            print('no optimization found')
     else:
         if type_opt == "normal":
             y_pred = model.predict_full_sequences(X_test_, data, num_hits=6, normalise=normalise)
@@ -220,9 +253,15 @@ def main():
             else:
                 y_pred, correct_nearest, correct = model.predict_full_sequences_nearest_parallel(X_test_, y_test, data, BagOfHits.Layer, None,
                                                                 t_steps=time_steps, t_features=t_features, n_features=n_features, num_hits=seq_len,  
-                                                                normalise=normalise, cylindrical=False, verbose=False, tol=tolerance, metric=metric)
+                                                                normalise=normalise, cylindrical=False, verbose=False, tol=tolerance, metric=metrics)
+        elif type_opt == "gaussian":
+                print('prediction gaussian')
+                y_pred, correct_nearest = model.predict_prob_full_sequences_nearest(X_test_, y_test, data, BagOfHits.Layer, None, 
+                                                                t_steps=time_steps, t_features=t_features, n_features=n_features, num_hits=seq_len,  
+                                                                normalise=normalise, cylindrical=False, verbose=False, tol=tolerance, remove_hit=False,
+                                                                metric=metrics)
         else:
-            print('no algorithm defined to predict')
+            print('no optimization found')
 
     y_predicted = convert_vector_to_matrix(y_pred, n_features, seq_len)
     y_predicted = to_frame(y_predicted)
@@ -269,16 +308,26 @@ def main():
     print("\t Tracks        : ", total_tracks)
     print("\t Model saved   : ", model.save_fnameh5)
     print("\t Test date     : ", now.strftime("%d/%m/%Y %H:%M:%S")) 
-    print("\t Coordenates   : ", coord) 
+    print("\t Coordenates   : ", coord)   
+    print("\t Coordenate 3D : ", points_3d)   
     print("\t Model Scaled   : ", model.normalise)
     print("\t Model Optimizer : ", optim)
     print("\t Prediction Opt  : ", type_opt)
-    print("\t Distance metric : ", metric)
+    print("\t Distance metric : ", metrics)
+    print("\t Remove hit      : ", remove_hit)
+    '''
     print("\t Correct hits per layer Nearest %s of %s tracks tolerance=%s: " % (correct_nearest, total_tracks, tolerance))
     print("\t Porcentage correct hits :", [str(round((t*100)/total_tracks, 2)) +"%" for t in correct_nearest]) 
     print("\t Correct hits per layer with Normal %s of %s tracks tolerance=%s: " % (correct, total_tracks, tolerance))
     print("\t Porcentage correct hits :", [str(round((t*100)/total_tracks, 2)) +"%" for t in correct])     
+    '''
 
+        
+    for m, metric in enumerate(metrics):
+        corrects = correct_nearest[m]
+        corrects = [ str(t) +"("+ str(round((t*100)/total_tracks, 2)) +"%)" for t in corrects]
+        print("\t Correct hits per layer (%s) %s of %s tracks: " % (metric, corrects, total_tracks))
+        
     # calculate the number of reconstructed tracks
     true_tracks = np.concatenate([X_test, y_test], axis = 1)
     pred_tracks = np.concatenate([X_test, y_predicted], axis = 1)
@@ -287,17 +336,18 @@ def main():
 
     tracks = pd.concat([true_tracks, pred_tracks])
     tracks_ = tracks[tracks.duplicated(keep='first')]
-    print('\t Reconstructed tracks: %s of %s tracks (%s)' % (tracks_.shape[0], total_tracks, (tracks_.shape[0]*100)/total_tracks))
+    print('\t Reconstructed tracks: %s of %s tracks (%s%)' % (tracks_.shape[0], total_tracks, (round(tracks_.shape[0]*100)/total_tracks, 2))
 
-    # metrics for nearest
-    _,_,_,_,result = calc_score(data.reshape2d(y_test, 1),
-                        data.reshape2d(y_predicted, 1), report=True)
-    print(result)
+    if show_metrics:
+        # metrics for nearest
+        _,_,_,_,result = calc_score(data.reshape2d(y_test, 1),
+                            data.reshape2d(y_predicted, 1), report=True)
+        print(result)
 
-    calc_score_layer(y_test, y_predicted, n_features=3)
+        calc_score_layer(y_test, y_predicted, n_features=3)
 
-    mses, rmses, r2s = calc_score_layer_axes(y_test, y_predicted)
-    summarize_scores_axes(mses, rmses, r2s)
+        mses, rmses, r2s = calc_score_layer_axes(y_test, y_predicted)
+        summarize_scores_axes(mses, rmses, r2s)
 
     sys.stdout = orig_stdout
     f.close()

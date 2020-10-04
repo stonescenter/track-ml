@@ -142,7 +142,18 @@ def parts_from_tracks(tracks):
     hits = tracks[:, 7:]
     return indexes, vertices, momenta, hits
 
+def distance_cylindrical_2D(a, b):
+    r0, theta0 = a[0] , a[1]
+    r1, theta1 = b[0] , b[1]
 
+    return np.sqrt(r0**2 + r1**2 - 2*r0*r1*np.cos(theta0 - theta1))
+
+def distance_cylindrical_3D(a, b):
+    r0, eta0, phi0 = a[0] , a[1], a[2]
+    r1, eta1, phi1 = b[0] , b[1], b[2]
+
+    return np.sqrt(r0**2 + r1**2 - 2*r0*r1*np.cos(phi0 - phi1) + (eta0-eta1)**2)
+    
 # if __name__ == "__main__":
 #     print("Test 1: rotate hit to horizontal")
 #     hit = np.array([np.random.random(), np.random.random(), np.random.random()])
